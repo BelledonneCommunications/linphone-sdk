@@ -154,7 +154,8 @@ static void send_dtmfs_sequence_rfc2833_with_hardcoded_payload_type(void) {
 		}
 		ms_free(expected);
 		as = linphone_call_get_stream(marie_call, 0);
-		BC_ASSERT_EQUAL(rtp_session_telephone_events_supported(as->sessions.rtp_session), 104, int, "%i");
+		BC_ASSERT_EQUAL(rtp_session_telephone_events_supported(ms_media_stream_sessions_get_rtp_session(as->sessions)),
+		                104, int, "%i");
 		end_call(marie, pauline);
 	}
 	linphone_core_manager_destroy(pauline);
@@ -184,7 +185,7 @@ static void send_dtmfs_sequence_rfc2833_with_different_numbering(void) {
 		linphone_call_send_dtmf(pauline_call, dtmf);
 
 		as = linphone_call_get_stream(pauline_call, 0);
-		BC_ASSERT_EQUAL(as->sessions.rtp_session->tev_send_pt, 104, int, "%i");
+		BC_ASSERT_EQUAL(ms_media_stream_sessions_get_rtp_session(as->sessions)->tev_send_pt, 104, int, "%i");
 
 		/*wait for the DTMF to be received by marie*/
 		BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &marie->stat.dtmf_count, dtmf_count_prev + 1, 10000));

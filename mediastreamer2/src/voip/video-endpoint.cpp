@@ -106,9 +106,9 @@ void VideoEndpoint::cutVideoStreamGraph(bool isRemote, VideoStream *st) {
 		mName = st->label;
 	}
 	/*stop the video graph*/
-	if (mSt->source) ms_ticker_detach(mSt->ms.sessions.ticker, mSt->source);
+	if (mSt->source) ms_ticker_detach(mSt->ms.sessions->ticker, mSt->source);
 	if (mSt->ms.rtprecv && media_stream_get_direction(&mSt->ms) != MediaStreamSendOnly)
-		ms_ticker_detach(mSt->ms.sessions.ticker, mSt->ms.rtprecv);
+		ms_ticker_detach(mSt->ms.sessions->ticker, mSt->ms.rtprecv);
 
 	mIsRemote = isRemote;
 
@@ -149,7 +149,7 @@ void VideoEndpoint::cutVideoStreamGraph(bool isRemote, VideoStream *st) {
 		bool_t enable = TRUE;
 		ms_filter_call_method(mSt->ms.rtpsend, MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, &enable);
 		ms_filter_call_method(mSt->ms.rtprecv, MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, &enable);
-		rtp_session_enable_transfer_mode(mSt->ms.sessions.rtp_session, TRUE);
+		rtp_session_enable_transfer_mode(mSt->ms.sessions->rtp_session, TRUE);
 	}
 }
 
@@ -158,7 +158,7 @@ void VideoEndpoint::redoVideoStreamGraph() {
 		bool_t enable = FALSE;
 		ms_filter_call_method(mSt->ms.rtpsend, MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, &enable);
 		ms_filter_call_method(mSt->ms.rtprecv, MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, &enable);
-		rtp_session_enable_transfer_mode(mSt->ms.sessions.rtp_session, FALSE);
+		rtp_session_enable_transfer_mode(mSt->ms.sessions->rtp_session, FALSE);
 	}
 
 	media_stream_remove_tmmbr_handler((MediaStream *)mSt, ms_video_endpoint_tmmbr_received, this);
@@ -169,9 +169,9 @@ void VideoEndpoint::redoVideoStreamGraph() {
 	if (mOutCutPointPrev.filter)
 		ms_filter_link(mOutCutPointPrev.filter, mOutCutPointPrev.pin, mOutCutPoint.filter, mOutCutPoint.pin);
 
-	if (mSt->source) ms_ticker_attach(mSt->ms.sessions.ticker, mSt->source);
+	if (mSt->source) ms_ticker_attach(mSt->ms.sessions->ticker, mSt->source);
 	if (mSt->ms.rtprecv && media_stream_get_direction(&mSt->ms) != MediaStreamSendOnly)
-		ms_ticker_attach(mSt->ms.sessions.ticker, mSt->ms.rtprecv);
+		ms_ticker_attach(mSt->ms.sessions->ticker, mSt->ms.rtprecv);
 }
 
 } // namespace ms2

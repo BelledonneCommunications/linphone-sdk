@@ -612,7 +612,7 @@ void linphone_reporting_update_media_info(LinphoneCall *call, int stats_type) {
 	}
 
 	if (stream != NULL) {
-		RtpSession *session = stream->sessions.rtp_session;
+		RtpSession *session = ms_media_stream_sessions_get_rtp_session(stream->sessions);
 
 		report->info.local_addr.ssrc = rtp_session_get_send_ssrc(session);
 		report->info.remote_addr.ssrc = rtp_session_get_recv_ssrc(session);
@@ -720,7 +720,7 @@ void linphone_reporting_on_rtcp_update(LinphoneCall *call, SalStreamType stats_t
 			                      ? Call::toCpp(call)->getMediaStream(LinphoneStreamTypeAudio)
 			                      : ((stats_type == 1) ? Call::toCpp(call)->getMediaStream(LinphoneStreamTypeVideo)
 			                                           : Call::toCpp(call)->getMediaStream(LinphoneStreamTypeText));
-			float rtt = rtp_session_get_round_trip_propagation(ms->sessions.rtp_session);
+			float rtt = rtp_session_get_round_trip_propagation(ms_media_stream_sessions_get_rtp_session(ms->sessions));
 
 			if (rtt > 1e-6) {
 				metrics->rtcp_sr_count++;

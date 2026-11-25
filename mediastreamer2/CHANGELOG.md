@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 It has been updated until the 5.5 SDK release. Please refer to the changelog at root of the linphone-sdk project for changes from the 5.6 SDK release onwards.
 
 
+## [5.5.44] 2026-11-20
+
+### Fixed
+- improve Baudot detector robustness by widening carrier and preamble tolerances, and preserving current character on transient silence.
+
 ## [5.5.30] 2026-10-05
 
 ### Fixed

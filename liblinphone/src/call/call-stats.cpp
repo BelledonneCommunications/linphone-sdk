@@ -72,14 +72,16 @@ CallStats *CallStats::clone() const {
 
 void CallStats::update(MediaStream *stream) {
 	PayloadType *pt;
-	RtpSession *session = stream->sessions.rtp_session;
+	RtpSession *session = ms_media_stream_sessions_get_rtp_session(stream->sessions);
 	const MSQualityIndicator *qi = media_stream_get_quality_indicator(stream);
 	if (qi) {
 		mLocalLateRate = ms_quality_indicator_get_local_late_rate(qi);
 		mLocalLossRate = ms_quality_indicator_get_local_loss_rate(qi);
 	}
 	media_stream_get_local_rtp_stats(stream, &mRtpStats);
-	if (stream->sessions.fec_session) media_stream_get_local_fec_stats(stream, &mFecStats);
+	if (ms_media_stream_sessions_get_fec_session(stream->sessions)) {
+		media_stream_get_local_fec_stats(stream, &mFecStats);
+	}
 	pt = rtp_profile_get_payload(rtp_session_get_profile(session), rtp_session_get_send_payload_type(session));
 	mClockrate = pt ? pt->clock_rate : 8000;
 }
@@ -87,9 +89,10 @@ void CallStats::update(MediaStream *stream) {
 void CallStats::fill(MediaStream *ms, OrtpEvent *ev) {
 	OrtpEventType evt = ortp_event_get_type(ev);
 	OrtpEventData *evd = ortp_event_get_data(ev);
-	if (ms->sessions.rtp_session) {
+	if (ms_media_stream_sessions_get_rtp_session(ms->sessions)) {
 		if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) {
-			mRoundTripDelay = rtp_session_get_round_trip_propagation(ms->sessions.rtp_session);
+			mRoundTripDelay =
+			    rtp_session_get_round_trip_propagation(ms_media_stream_sessions_get_rtp_session(ms->sessions));
 			if (mReceivedRtcp != NULL) freemsg(mReceivedRtcp);
 			mReceivedRtcp = evd->packet;
 			mRtcpReceivedViaMux = evd->info.socket_type == OrtpRTPSocket;
@@ -97,7 +100,8 @@ void CallStats::fill(MediaStream *ms, OrtpEvent *ev) {
 			mUpdated = LINPHONE_CALL_STATS_RECEIVED_RTCP_UPDATE;
 			update(ms);
 		} else if (evt == ORTP_EVENT_RTCP_PACKET_EMITTED) {
-			memcpy(&mJitterStats, rtp_session_get_jitter_stats(ms->sessions.rtp_session), sizeof(jitter_stats_t));
+			memcpy(&mJitterStats, rtp_session_get_jitter_stats(ms_media_stream_sessions_get_rtp_session(ms->sessions)),
+			       sizeof(jitter_stats_t));
 			if (mSentRtcp != NULL) freemsg(mSentRtcp);
 			mSentRtcp = evd->packet;
 			evd->packet = NULL;

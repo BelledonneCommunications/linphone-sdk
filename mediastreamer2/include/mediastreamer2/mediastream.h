@@ -119,23 +119,32 @@ typedef struct _MediaStream MediaStream;
  * */
 typedef void (*media_stream_process_rtcp_callback_t)(MediaStream *stream, const mblk_t *m);
 
-struct _MSMediaStreamSessions {
-	RtpSession *rtp_session;
-	RtpSession *fec_session;
-	MSSrtpCtx *srtp_context;
-	MSZrtpContext *zrtp_context;
-	MSDtlsSrtpContext *dtls_context;
-	MSTicker *ticker;
-	bctbx_list_t *auxiliary_sessions; /**< a list of RtpSessions created by the mediastream on new SSRC
-	                                        multiplexed in a bundle */
-};
-
 #ifndef MS_MEDIA_STREAM_SESSIONS_DEFINED
 typedef struct _MSMediaStreamSessions MSMediaStreamSessions;
 #define MS_MEDIA_STREAM_SESSIONS_DEFINED 1
 #endif
 
-MS2_PUBLIC void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions);
+MS2_PUBLIC MSMediaStreamSessions *ms_media_stream_sessions_new(void);
+MS2_PUBLIC MSMediaStreamSessions *ms_media_stream_sessions_ref(MSMediaStreamSessions *sessions);
+MS2_PUBLIC void ms_media_stream_sessions_unref(MSMediaStreamSessions *sessions);
+
+MS2_PUBLIC RtpSession *ms_media_stream_sessions_get_rtp_session(const MSMediaStreamSessions *sessions);
+MS2_PUBLIC void ms_media_stream_sessions_set_rtp_session(MSMediaStreamSessions *sessions, RtpSession *rtp_session);
+
+MS2_PUBLIC RtpSession *ms_media_stream_sessions_get_fec_session(const MSMediaStreamSessions *sessions);
+
+MS2_PUBLIC MSSrtpCtx *ms_media_stream_sessions_get_srtp_context(const MSMediaStreamSessions *sessions);
+MS2_PUBLIC void ms_media_stream_sessions_reset_srtp_context(MSMediaStreamSessions *sessions);
+
+MS2_PUBLIC MSZrtpContext *ms_media_stream_sessions_get_zrtp_context(const MSMediaStreamSessions *sessions);
+MS2_PUBLIC void ms_media_stream_sessions_set_zrtp_context(MSMediaStreamSessions *sessions, MSZrtpContext *zrtp_context);
+
+MS2_PUBLIC MSDtlsSrtpContext *ms_media_stream_sessions_get_dtls_context(const MSMediaStreamSessions *sessions);
+
+MS2_PUBLIC MSTicker *ms_media_stream_sessions_get_ticker(const MSMediaStreamSessions *sessions);
+MS2_PUBLIC void ms_media_stream_sessions_set_ticker(MSMediaStreamSessions *sessions, MSTicker *ticker);
+
+MS2_PUBLIC const bctbx_list_t *ms_media_stream_sessions_get_auxiliary_sessions(const MSMediaStreamSessions *sessions);
 
 typedef enum _MSStreamState { MSStreamInitialized, MSStreamPreparing, MSStreamStarted, MSStreamStopped } MSStreamState;
 
@@ -151,7 +160,7 @@ typedef enum MediaStreamDir {
 struct _MediaStream {
 	MSFormatType type;
 	MSStreamState state;
-	MSMediaStreamSessions sessions;
+	MSMediaStreamSessions *sessions;
 	OrtpEvQueue *evq;
 	MSFilter *rtprecv;
 	MSFilter *rtpsend;
@@ -170,7 +179,6 @@ struct _MediaStream {
 	char *log_tag;
 	bool_t rc_enable;
 	bool_t is_beginning;
-	bool_t owns_sessions;
 	bool_t stun_allowed; /* Whether sending basic stun packet as keepalive is permitted, default is yes */
 	/**
 	 * defines encoder target network bit rate, uses #media_stream_set_target_network_bitrate() setter.
@@ -193,7 +201,7 @@ struct _MediaStream {
 	mblk_t *last_goog_remb_received;
 };
 
-MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions);
+MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, MSMediaStreamSessions *sessions);
 
 MS2_PUBLIC MSFactory *media_stream_get_factory(MediaStream *stream);
 
@@ -406,12 +414,6 @@ MS2_PUBLIC float media_stream_get_rtcp_up_bw(const MediaStream *stream);
  * @return bitrate in bit per seconds
  * */
 MS2_PUBLIC float media_stream_get_rtcp_down_bw(const MediaStream *stream);
-
-/**
- * Returns the sessions that were used in the media stream (RTP, SRTP, ZRTP...) so that they can be re-used.
- * As a result of calling this function, the media stream no longer owns the sessions and thus will not free them.
- **/
-MS2_PUBLIC void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStreamSessions *sessions);
 
 MS2_PUBLIC void media_stream_iterate(MediaStream *stream);
 
@@ -795,7 +797,7 @@ MS2_PUBLIC AudioStream *audio_stream_new2(MSFactory *factory, const char *ip, in
  * @param factory the MSFActory from the core object
  * @return a new AudioStream
  **/
-MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const MSMediaStreamSessions *sessions);
+MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(MSFactory *factory, MSMediaStreamSessions *sessions);
 
 #define AUDIO_STREAM_FEATURE_PLC (1 << 0)
 #define AUDIO_STREAM_FEATURE_EC (1 << 1)
@@ -1425,7 +1427,7 @@ MS2_PUBLIC VideoStream *video_stream_new(MSFactory *factory, int loc_rtp_port, i
  **/
 MS2_PUBLIC VideoStream *video_stream_new2(MSFactory *factory, const char *ip, int loc_rtp_port, int loc_rtcp_port);
 
-MS2_PUBLIC VideoStream *video_stream_new_with_sessions(MSFactory *factory, const MSMediaStreamSessions *sessions);
+MS2_PUBLIC VideoStream *video_stream_new_with_sessions(MSFactory *factory, MSMediaStreamSessions *sessions);
 
 /**
  * Use media_stream_set_direction() instead
@@ -1938,7 +1940,7 @@ MS2_PUBLIC TextStream *text_stream_new(MSFactory *factory, int loc_rtp_port, int
  * @param factory
  * @return a new TextStream
  **/
-MS2_PUBLIC TextStream *text_stream_new_with_sessions(MSFactory *factory, const MSMediaStreamSessions *sessions);
+MS2_PUBLIC TextStream *text_stream_new_with_sessions(MSFactory *factory, MSMediaStreamSessions *sessions);
 
 /**
  * Creates a TextStream object listening on a RTP port for a dedicated address.

@@ -543,10 +543,10 @@ static void test_baudot_audio_stream_base_2(const std::string &marielleLocalIp,
 	char *recordedFile = bc_tester_file(recordedFileName);
 	bctbx_free(recordedFileName);
 
-	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session, TRUE);
-	rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session, TRUE);
-	rtp_session_set_rtcp_report_interval(marielle->ms.sessions.rtp_session, 1000);
-	rtp_session_set_rtcp_report_interval(margaux->ms.sessions.rtp_session, 1000);
+	rtp_session_set_multicast_loopback(ms_media_stream_sessions_get_rtp_session(marielle->ms.sessions), TRUE);
+	rtp_session_set_multicast_loopback(ms_media_stream_sessions_get_rtp_session(margaux->ms.sessions), TRUE);
+	rtp_session_set_rtcp_report_interval(ms_media_stream_sessions_get_rtp_session(marielle->ms.sessions), 1000);
+	rtp_session_set_rtcp_report_interval(ms_media_stream_sessions_get_rtp_session(margaux->ms.sessions), 1000);
 
 	marielleStats.reset();
 	margauxStats.reset();
@@ -596,12 +596,13 @@ static void test_baudot_audio_stream_base_2(const std::string &marielleLocalIp,
 		}
 	}
 
-	// if (rtp_session_rtcp_enabled(marielle->ms.sessions.rtp_session) &&
-	//     rtp_session_rtcp_enabled(margaux->ms.sessions.rtp_session)) {
-	// 	BC_ASSERT_GREATER_STRICT(rtp_session_get_round_trip_propagation(marielle->ms.sessions.rtp_session), 0, float,
+	// if (rtp_session_rtcp_enabled(ms_media_stream_sessions_get_rtp_session(marielle->ms.sessions)) &&
+	//     rtp_session_rtcp_enabled(ms_media_stream_sessions_get_rtp_session(margaux->ms.sessions))) {
+	// 	BC_ASSERT_GREATER_STRICT(rtp_session_get_round_trip_propagation(ms_media_stream_sessions_get_rtp_session(marielle->ms.sessions)),
+	// 0, float,
 	// 	                         "%f");
-	// 	BC_ASSERT_GREATER_STRICT(rtp_session_get_stats(marielle->ms.sessions.rtp_session)->recv_rtcp_packets, 0,
-	// 	                         unsigned long long, "%llu");
+	// 	BC_ASSERT_GREATER_STRICT(rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(marielle->ms.sessions))->recv_rtcp_packets,
+	// 0, 	                         unsigned long long, "%llu");
 	// }
 
 	audio_stream_get_local_rtp_stats(marielle, &marielleStats.mRtpStats);
@@ -772,10 +773,10 @@ static void test_baudot_detection_from_file_no_detection_base_2(const std::strin
 	char *recordedFile = bc_tester_file(recordedFileName);
 	bctbx_free(recordedFileName);
 
-	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session, TRUE);
-	rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session, TRUE);
-	rtp_session_set_rtcp_report_interval(marielle->ms.sessions.rtp_session, 1000);
-	rtp_session_set_rtcp_report_interval(margaux->ms.sessions.rtp_session, 1000);
+	rtp_session_set_multicast_loopback(ms_media_stream_sessions_get_rtp_session(marielle->ms.sessions), TRUE);
+	rtp_session_set_multicast_loopback(ms_media_stream_sessions_get_rtp_session(margaux->ms.sessions), TRUE);
+	rtp_session_set_rtcp_report_interval(ms_media_stream_sessions_get_rtp_session(marielle->ms.sessions), 1000);
+	rtp_session_set_rtcp_report_interval(ms_media_stream_sessions_get_rtp_session(margaux->ms.sessions), 1000);
 
 	marielleStats.reset();
 	margauxStats.reset();
@@ -802,12 +803,14 @@ static void test_baudot_detection_from_file_no_detection_base_2(const std::strin
 	audio_stream_play(marielle, NULL);
 	BC_ASSERT_EQUAL(marielleStats.mNbEndOfFile, 1, int, "%d");
 
-	if (rtp_session_rtcp_enabled(marielle->ms.sessions.rtp_session) &&
-	    rtp_session_rtcp_enabled(margaux->ms.sessions.rtp_session)) {
-		BC_ASSERT_GREATER_STRICT(rtp_session_get_round_trip_propagation(marielle->ms.sessions.rtp_session), 0, float,
-		                         "%f");
-		BC_ASSERT_GREATER_STRICT(rtp_session_get_stats(marielle->ms.sessions.rtp_session)->recv_rtcp_packets, 0,
-		                         unsigned long long, "%llu");
+	if (rtp_session_rtcp_enabled(ms_media_stream_sessions_get_rtp_session(marielle->ms.sessions)) &&
+	    rtp_session_rtcp_enabled(ms_media_stream_sessions_get_rtp_session(margaux->ms.sessions))) {
+		BC_ASSERT_GREATER_STRICT(
+		    rtp_session_get_round_trip_propagation(ms_media_stream_sessions_get_rtp_session(marielle->ms.sessions)), 0,
+		    float, "%f");
+		BC_ASSERT_GREATER_STRICT(
+		    rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(marielle->ms.sessions))->recv_rtcp_packets,
+		    0, unsigned long long, "%llu");
 	}
 
 	audio_stream_get_local_rtp_stats(marielle, &marielleStats.mRtpStats);

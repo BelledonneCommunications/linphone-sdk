@@ -22,6 +22,7 @@
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msrtp.h"
+#include "private.h"
 #include <ortp/ortp.h>
 
 #define NO_INCREASE_THRESHOLD_FOR_CONGESTION 1.4
@@ -42,7 +43,7 @@ void ms_bandwidth_controller_reset_state(MSBandwidthController *obj) {
 }
 
 static void ms_bandwidth_controller_send_bitrate_request(MSBandwidthController *obj, struct _MediaStream *stream) {
-	RtpSession *session = stream->sessions.rtp_session;
+	RtpSession *session = stream->sessions->rtp_session;
 	float bandwidth = 0;
 	size_t num_streams = bctbx_list_size(obj->controlled_streams);
 
@@ -107,7 +108,7 @@ static void ms_bandwidth_controller_estimate_bandwidths(MSBandwidthController *o
 		MediaStream *ms = (MediaStream *)elem->data;
 		float bw;
 		if (media_stream_get_state(ms) != MSStreamStarted) continue;
-		bw = rtp_session_get_recv_bandwidth_smooth(ms->sessions.rtp_session);
+		bw = rtp_session_get_recv_bandwidth_smooth(ms->sessions->rtp_session);
 		bandwidth += bw;
 		if (bctbx_list_find(obj->controlled_streams, ms)) controlled_bandwidth += bw;
 	}
@@ -160,12 +161,12 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 		ms_bandwidth_controller_estimate_bandwidths(obj);
 
 		if ((bctbx_list_size(obj->controlled_streams) > 1) &&
-		    (rtp_session_get_recv_bandwidth_smooth(ms->sessions.rtp_session) >
+		    (rtp_session_get_recv_bandwidth_smooth(ms->sessions->rtp_session) >
 		     obj->stats.estimated_download_bandwidth / bctbx_list_size(obj->controlled_streams))) {
 			ms_message("MSBandwidthController: congestion detected ignored because stream [%p][%s] recv bandwidth [%f] "
 			           "> average [%f]. Total bandwidth is %f, controlled streams' numbers is %d.",
 			           ms, ms_format_type_to_string(ms->type),
-			           rtp_session_get_recv_bandwidth_smooth(ms->sessions.rtp_session),
+			           rtp_session_get_recv_bandwidth_smooth(ms->sessions->rtp_session),
 			           obj->stats.estimated_download_bandwidth / bctbx_list_size(obj->controlled_streams),
 			           obj->stats.estimated_download_bandwidth, (int)bctbx_list_size(obj->controlled_streams));
 			return;
@@ -216,7 +217,7 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 	ms_bandwidth_controller_send_bitrate_request(obj, ms);
 	obj->download_video_bandwidth_available_estimated = 0;
 	obj->download_audio_bandwidth_available_estimated = 0;
-	rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &video_bandwidth_estimator_params);
+	rtp_session_enable_video_bandwidth_estimator(ms->sessions->rtp_session, &video_bandwidth_estimator_params);
 }
 
 static void send_bitrate_for_controlled_video_streams(MSBandwidthController *obj, float estimated_bandwidth) {
@@ -326,20 +327,20 @@ void ms_bandwidth_controller_elect_controlled_streams(MSBandwidthController *obj
 			if (vs->content != MSVideoContentThumbnail && media_stream_get_direction(ms) != MediaStreamSendOnly &&
 			    (rtp_session_avpf_feature_enabled(session, ORTP_AVPF_FEATURE_TMMBR) ||
 			     rtp_session_avpf_feature_enabled(session, ORTP_AVPF_FEATURE_GOOG_REMB))) {
-				if (!ms->sessions.rtp_session->video_bandwidth_estimator_enabled) {
+				if (!ms->sessions->rtp_session->video_bandwidth_estimator_enabled) {
 					ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(ms),
 					                           ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0,
 					                           on_video_bandwidth_estimation_available, ms);
 					params.enabled = TRUE;
-					rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &params);
+					rtp_session_enable_video_bandwidth_estimator(ms->sessions->rtp_session, &params);
 				}
 				obj->controlled_streams = bctbx_list_append(obj->controlled_streams, ms);
-			} else if (ms->sessions.rtp_session->video_bandwidth_estimator_enabled) {
+			} else if (ms->sessions->rtp_session->video_bandwidth_estimator_enabled) {
 				ortp_ev_dispatcher_disconnect(media_stream_get_event_dispatcher(ms),
 				                              ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0,
 				                              on_video_bandwidth_estimation_available);
 				params.enabled = FALSE;
-				rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &params);
+				rtp_session_enable_video_bandwidth_estimator(ms->sessions->rtp_session, &params);
 			}
 		} else {
 			as = ms;
@@ -349,23 +350,23 @@ void ms_bandwidth_controller_elect_controlled_streams(MSBandwidthController *obj
 	if (as) {                           // There is an audio stream
 		if (!obj->controlled_streams) { // There is no video stream to control -> enable control on the audio stream
 			// Audiostream is enabled even when in MediaStreamSendOnly as it must send duplicates if needed
-			if (!as->sessions.rtp_session->audio_bandwidth_estimator_enabled) {
+			if (!as->sessions->rtp_session->audio_bandwidth_estimator_enabled) {
 				OrtpAudioBandwidthEstimatorParams params_audio = {0};
 				ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(as),
 				                           ORTP_EVENT_NEW_AUDIO_BANDWIDTH_ESTIMATION_AVAILABLE, 0,
 				                           on_audio_bandwidth_estimation_available, as);
 				params_audio.enabled = TRUE;
-				rtp_session_enable_audio_bandwidth_estimator(as->sessions.rtp_session, &params_audio);
+				rtp_session_enable_audio_bandwidth_estimator(as->sessions->rtp_session, &params_audio);
 			}
 			obj->controlled_streams = bctbx_list_append(obj->controlled_streams, as);
 		} else { // there is at leat one video stream, make sure the audio stream disable its bandwidth estimator
-			if (as->sessions.rtp_session->audio_bandwidth_estimator_enabled) {
+			if (as->sessions->rtp_session->audio_bandwidth_estimator_enabled) {
 				OrtpAudioBandwidthEstimatorParams params_audio = {0};
 				ortp_ev_dispatcher_disconnect(media_stream_get_event_dispatcher(as),
 				                              ORTP_EVENT_NEW_AUDIO_BANDWIDTH_ESTIMATION_AVAILABLE, 0,
 				                              on_audio_bandwidth_estimation_available);
 				params_audio.enabled = FALSE;
-				rtp_session_enable_audio_bandwidth_estimator(as->sessions.rtp_session, &params_audio);
+				rtp_session_enable_audio_bandwidth_estimator(as->sessions->rtp_session, &params_audio);
 			}
 		}
 	}
@@ -376,7 +377,7 @@ void ms_bandwidth_controller_elect_controlled_streams(MSBandwidthController *obj
 void ms_bandwidth_controller_add_stream(MSBandwidthController *obj, struct _MediaStream *stream) {
 	ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(stream), ORTP_EVENT_CONGESTION_STATE_CHANGED, 0,
 	                           on_congestion_state_changed, stream);
-	rtp_session_enable_congestion_detection(stream->sessions.rtp_session, TRUE);
+	rtp_session_enable_congestion_detection(stream->sessions->rtp_session, TRUE);
 	stream->bandwidth_controller = obj;
 	obj->streams = bctbx_list_append(obj->streams, stream);
 	ms_bandwidth_controller_elect_controlled_streams(obj);
@@ -388,7 +389,7 @@ void ms_bandwidth_controller_remove_stream(MSBandwidthController *obj, struct _M
 	if (bctbx_list_find(obj->streams, stream) == NULL) return;
 	ortp_ev_dispatcher_disconnect(media_stream_get_event_dispatcher(stream), ORTP_EVENT_CONGESTION_STATE_CHANGED, 0,
 	                              on_congestion_state_changed);
-	rtp_session_enable_congestion_detection(stream->sessions.rtp_session, FALSE);
+	rtp_session_enable_congestion_detection(stream->sessions->rtp_session, FALSE);
 	ortp_ev_dispatcher_disconnect(media_stream_get_event_dispatcher(stream),
 	                              ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0,
 	                              on_video_bandwidth_estimation_available);
@@ -396,8 +397,8 @@ void ms_bandwidth_controller_remove_stream(MSBandwidthController *obj, struct _M
 	                              ORTP_EVENT_NEW_AUDIO_BANDWIDTH_ESTIMATION_AVAILABLE, 0,
 	                              on_audio_bandwidth_estimation_available);
 	params_video.enabled = FALSE;
-	rtp_session_enable_video_bandwidth_estimator(stream->sessions.rtp_session, &params_video);
-	rtp_session_enable_audio_bandwidth_estimator(stream->sessions.rtp_session, &params_audio);
+	rtp_session_enable_video_bandwidth_estimator(stream->sessions->rtp_session, &params_video);
+	rtp_session_enable_audio_bandwidth_estimator(stream->sessions->rtp_session, &params_audio);
 	stream->bandwidth_controller = NULL;
 	obj->streams = bctbx_list_remove(obj->streams, stream);
 	ms_bandwidth_controller_elect_controlled_streams(obj);

@@ -65,7 +65,10 @@ MS2VideoStream::MS2VideoStream(StreamsGroup &sg, const OfferAnswerContext &param
 	}
 	sg.installSharedService<ScreenSharingService>();
 
-	mStream = video_stream_new2(getCCore()->factory, L_STRING_TO_C(bindIp), mPortConfig.rtpPort, mPortConfig.rtcpPort);
+	ms_media_stream_sessions_set_rtp_session(
+	    mSessions, ms_create_duplex_rtp_session(L_STRING_TO_C(bindIp), mPortConfig.rtpPort, mPortConfig.rtcpPort,
+	                                            ms_factory_get_mtu(getCCore()->factory)));
+	mStream = video_stream_new_with_sessions(getCCore()->factory, mSessions);
 
 	initializeSessions(&mStream->ms);
 }
@@ -210,10 +213,9 @@ void MS2VideoStream::initZrtp() {
 	if (audioStream) {
 		MS2AudioStream *msa = dynamic_cast<MS2AudioStream *>(audioStream);
 		video_stream_enable_zrtp(mStream, (AudioStream *)msa->getMediaStream());
-		// Copy newly created zrtp context into mSessions
-		media_stream_reclaim_sessions((MediaStream *)mStream, &mSessions);
-		if (mSessions.zrtp_context) {
-			ms_zrtp_enable_go_clear(mSessions.zrtp_context, linphone_core_zrtp_go_clear_enabled(getCCore()));
+		MSZrtpContext *zrtpCtx = ms_media_stream_sessions_get_zrtp_context(mSessions);
+		if (zrtpCtx) {
+			ms_zrtp_enable_go_clear(zrtpCtx, linphone_core_zrtp_go_clear_enabled(getCCore()));
 		}
 	} else {
 		lError() << "Unable to initiate ZRTP session because no audio stream is attached to video stream " << this
@@ -233,11 +235,11 @@ void MS2VideoStream::startZrtp() {
 	 * enabled */
 	if (getMediaSessionPrivate().isMediaEncryptionAccepted(LinphoneMediaEncryptionZRTP)) {
 
-		if (!mSessions.zrtp_context) {
+		if (!ms_media_stream_sessions_get_zrtp_context(mSessions)) {
 			initZrtp();
 		}
 
-		if (mSessions.zrtp_context) {
+		if (ms_media_stream_sessions_get_zrtp_context(mSessions)) {
 			video_stream_start_zrtp(mStream);
 		} else {
 			lError() << "Error while enabling zrtp on video stream: ZRTP context is NULL";
@@ -293,7 +295,7 @@ void MS2VideoStream::runAlertMonitors() {
 	float fps = cameraEnabled() ? video_stream_get_sent_framerate(mStream) : -1;
 	mVideoMonitor.check(&sendStats, &recvStats, fps);
 	mBandwidthMonitor.check(mStats);
-	mNetworkMonitor.checkNackQuality(mStream->ms.sessions.rtp_session);
+	mNetworkMonitor.checkNackQuality(ms_media_stream_sessions_get_rtp_session(mStream->ms.sessions));
 	MS2Stream::runAlertMonitors();
 }
 
@@ -493,9 +495,9 @@ void MS2VideoStream::render(const OfferAnswerContext &ctx, CallSession::State ta
 		}
 	}
 
-	if (localScreenSharingChanged) { // We need to stop this stream and the thumbnail stream because of
-	                                 // source filter concurrency, and
-	                                 // display mode replumbing
+	if (localScreenSharingChanged) {
+		// We need to stop this stream and the thumbnail stream because of
+		// source filter concurrency, and display mode replumbing
 		lInfo() << "Screen sharing mode changed : ScreenSharing=" << isScreenSharing << ". Stopping current stream ("
 		        << mStream << ") and auxiliary stream(" << auxStream << ")";
 		stop();
@@ -576,7 +578,7 @@ void MS2VideoStream::render(const OfferAnswerContext &ctx, CallSession::State ta
 	if (conference) {
 		if (const auto &streamCfg = vstream.getActualConfiguration(); streamCfg.getFrameMarkingExtensionId() > 0) {
 			video_stream_set_frame_marking_extension_id(mStream, streamCfg.getFrameMarkingExtensionId());
-			rtp_session_set_ssrc_changed_threshold(mStream->ms.sessions.rtp_session, 1);
+			rtp_session_set_ssrc_changed_threshold(ms_media_stream_sessions_get_rtp_session(mStream->ms.sessions), 1);
 		}
 
 		const auto serverConference = dynamic_pointer_cast<ServerConference>(conference);
@@ -765,9 +767,11 @@ void MS2VideoStream::render(const OfferAnswerContext &ctx, CallSession::State ta
 		/* Audio stream is already encrypted and video stream is active */
 		if (audioStream && audioStream->isEncrypted()) {
 			startZrtp();
-			if (mSessions.zrtp_context && (remoteStream.getChosenConfiguration().hasZrtpHash() == 1)) {
+			if (ms_media_stream_sessions_get_zrtp_context(mSessions) &&
+			    (remoteStream.getChosenConfiguration().hasZrtpHash() == 1)) {
 				int retval = ms_zrtp_setPeerHelloHash(
-				    mSessions.zrtp_context, (uint8_t *)remoteStream.getChosenConfiguration().getZrtpHash(),
+				    ms_media_stream_sessions_get_zrtp_context(mSessions),
+				    (uint8_t *)remoteStream.getChosenConfiguration().getZrtpHash(),
 				    strlen((const char *)(remoteStream.getChosenConfiguration().getZrtpHash())));
 				if (retval != 0) lError() << "Video stream ZRTP hash mismatch 0x" << hex << retval;
 			}
@@ -804,7 +808,7 @@ void MS2VideoStream::stop() {
 	video_stream_stop(mStream);
 	/* In mediastreamer2, stop actually stops and destroys. We immediately need to recreate the stream object for
 	 * later use, keeping the sessions (for RTP, SRTP, ZRTP etc) that were setup at the beginning. */
-	mStream = video_stream_new_with_sessions(getCCore()->factory, &mSessions);
+	mStream = video_stream_new_with_sessions(getCCore()->factory, mSessions);
 
 	if (isMain()) getMediaSessionPrivate().getCurrentParams()->getPrivate()->setUsedVideoCodec(nullptr);
 }

@@ -180,12 +180,15 @@ static void check_ice_from_rtp(LinphoneCall *c1, LinphoneCall *c2, LinphoneStrea
 				}
 				astream = (AudioStream *)linphone_call_get_stream(c1, LinphoneStreamTypeAudio);
 				if ((expected_addr.find(':') == std::string::npos) &&
-				    (astream->ms.sessions.rtp_session->rtp.gs.rem_addr.ss_family == AF_INET6)) {
-					bctbx_sockaddr_ipv6_to_ipv4((struct sockaddr *)&astream->ms.sessions.rtp_session->rtp.gs.rem_addr,
-					                            (struct sockaddr *)&remaddr, &remaddrlen);
+				    (ms_media_stream_sessions_get_rtp_session(astream->ms.sessions)->rtp.gs.rem_addr.ss_family ==
+				     AF_INET6)) {
+					bctbx_sockaddr_ipv6_to_ipv4(
+					    (struct sockaddr *)&ms_media_stream_sessions_get_rtp_session(astream->ms.sessions)
+					        ->rtp.gs.rem_addr,
+					    (struct sockaddr *)&remaddr, &remaddrlen);
 				} else {
-					memcpy(&remaddr, &astream->ms.sessions.rtp_session->rtp.gs.rem_addr,
-					       astream->ms.sessions.rtp_session->rtp.gs.rem_addrlen);
+					memcpy(&remaddr, &ms_media_stream_sessions_get_rtp_session(astream->ms.sessions)->rtp.gs.rem_addr,
+					       ms_media_stream_sessions_get_rtp_session(astream->ms.sessions)->rtp.gs.rem_addrlen);
 				}
 				bctbx_sockaddr_to_ip_address((struct sockaddr *)&remaddr, remaddrlen, ip, sizeof(ip), &port);
 

@@ -44,7 +44,7 @@ void AudioStreamStopCommand::exec(Daemon *app, const string &args) {
 		return;
 	}
 	app->removeAudioStream(id);
-	RtpProfile *prof = rtp_session_get_profile(stream->ms.sessions.rtp_session);
+	RtpProfile *prof = rtp_session_get_profile(ms_media_stream_sessions_get_rtp_session(stream->ms.sessions));
 	audio_stream_stop(stream);
 	rtp_profile_destroy(prof);
 	app->sendResponse(Response());

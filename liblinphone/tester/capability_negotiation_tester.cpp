@@ -2928,8 +2928,8 @@ void simple_call_with_capability_negotiations_with_different_encryption_after_re
 		}
 
 		/*since RTCP streams are reset when call is paused/resumed, there should be no loss at all*/
-		const rtp_stats_t *stats =
-		    rtp_session_get_stats(linphone_call_get_stream(calleeCall, LinphoneStreamTypeAudio)->sessions.rtp_session);
+		const rtp_stats_t *stats = rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(
+		    linphone_call_get_stream(calleeCall, LinphoneStreamTypeAudio)->sessions));
 		BC_ASSERT_LOWER((int)stats->cum_packet_loss, 10, int, "%d");
 
 		end_call(caller, callee);
@@ -3060,8 +3060,8 @@ void simple_call_with_capability_negotiations_with_resume_and_media_change_base(
 		}
 
 		/*since RTCP streams are reset when call is paused/resumed, there should be no loss at all*/
-		const rtp_stats_t *stats =
-		    rtp_session_get_stats(linphone_call_get_stream(calleeCall, LinphoneStreamTypeAudio)->sessions.rtp_session);
+		const rtp_stats_t *stats = rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(
+		    linphone_call_get_stream(calleeCall, LinphoneStreamTypeAudio)->sessions));
 		BC_ASSERT_LOWER((int)stats->cum_packet_loss, 10, int, "%d");
 
 		callerParams = linphone_core_create_call_params(caller->lc, callerCall);
@@ -3128,8 +3128,8 @@ void simple_call_with_capability_negotiations_with_resume_and_media_change_base(
 		}
 
 		/*since RTCP streams are reset when call is paused/resumed, there should be no loss at all*/
-		stats =
-		    rtp_session_get_stats(linphone_call_get_stream(calleeCall, LinphoneStreamTypeAudio)->sessions.rtp_session);
+		stats = rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(
+		    linphone_call_get_stream(calleeCall, LinphoneStreamTypeAudio)->sessions));
 		BC_ASSERT_LOWER((int)stats->cum_packet_loss, 10, int, "%d");
 
 		end_call(caller, callee);

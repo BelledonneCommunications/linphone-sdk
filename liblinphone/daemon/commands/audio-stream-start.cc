@@ -87,7 +87,8 @@ void AudioStreamStartCommand::exec(Daemon *app, const string &args) {
 		rtp_profile_set_payload(prof, 13, payload_type_clone(&payload_type_cn));
 	}
 	audio_stream_enable_adaptive_jittcomp(stream, linphone_core_audio_adaptive_jittcomp_enabled(app->getCore()));
-	rtp_session_set_symmetric_rtp(stream->ms.sessions.rtp_session, linphone_core_symmetric_rtp_enabled(app->getCore()));
+	rtp_session_set_symmetric_rtp(ms_media_stream_sessions_get_rtp_session(stream->ms.sessions),
+	                              linphone_core_symmetric_rtp_enabled(app->getCore()));
 
 	int err = audio_stream_start_now(stream, prof, L_STRING_TO_C(addr), port, port + 1, payload_type, jitt, play_card,
 	                                 capture_card, echo_canceller);

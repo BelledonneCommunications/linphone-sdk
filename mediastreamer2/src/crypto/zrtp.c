@@ -801,14 +801,6 @@ static void set_sas_suites(bzrtpContext_t *ctx, const MSZrtpSasType *sasTypes, c
 /***********************************************/
 /***** EXPORTED FUNCTIONS                  *****/
 /***********************************************/
-/**** Private to mediastreamer2 functions ****/
-/* header declared in voip/private.h */
-void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessions *stream_sessions) {
-	if (zrtp_context != NULL) {
-		zrtp_context->stream_sessions = stream_sessions;
-	}
-}
-
 /**** Public functions ****/
 /* header declared in include/mediastreamer2/zrtp.h */
 bool_t ms_zrtp_available(void) {
@@ -928,7 +920,7 @@ void ms_zrtp_context_destroy(MSZrtpContext *ctx) {
 	}
 
 	if (sessions) {
-		ms_mutex_lock(&sessions->ticker->lock);
+		if (sessions->ticker) ms_mutex_lock(&sessions->ticker->lock);
 		RtpSession *rtp_session = sessions->rtp_session;
 		if (rtp_session) {
 			RtpTransport *rtpt = NULL, *rtcpt = NULL;
@@ -938,7 +930,7 @@ void ms_zrtp_context_destroy(MSZrtpContext *ctx) {
 			ctx->rtcp_modifier->t_destroy(ctx->rtcp_modifier);
 			meta_rtp_transport_remove_modifier(rtcpt, ctx->rtcp_modifier);
 		}
-		ms_mutex_unlock(&sessions->ticker->lock);
+		if (sessions->ticker) ms_mutex_unlock(&sessions->ticker->lock);
 	}
 
 	ms_free(ctx);
@@ -1179,9 +1171,6 @@ int ms_zrtp_transport_modifier_new(MSZrtpContext *ctx, RtpTransportModifier **rt
 }
 
 void ms_zrtp_transport_modifier_destroy(RtpTransportModifier *tp) {
-}
-
-void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessions *stream_sessions) {
 }
 
 int ms_zrtp_getHelloHash(MSZrtpContext *ctx, uint8_t *output, size_t outputLength) {

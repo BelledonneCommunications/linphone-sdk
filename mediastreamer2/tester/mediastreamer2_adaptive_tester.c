@@ -236,7 +236,7 @@ void start_adaptive_stream(MSFormatType type,
 
 	media_stream_enable_adaptive_bitrate_control(marielle_ms, TRUE);
 	media_stream_set_adaptive_bitrate_algorithm(marielle_ms, MSQosAnalyzerAlgorithmStateful);
-	rtp_session_set_duplication_ratio(marielle_ms->sessions.rtp_session, dup_ratio);
+	rtp_session_set_duplication_ratio(ms_media_stream_sessions_get_rtp_session(marielle_ms->sessions), dup_ratio);
 
 	if (marielle->type == MSAudio) {
 		audio_manager_start(marielle, payload, margaux->local_rtp, initial_bitrate, file, NULL);
@@ -254,7 +254,8 @@ void start_adaptive_stream(MSFormatType type,
 		params.packet_count_min = 5;
 		params.min_required_measurements = 30;
 		params.enabled = TRUE;
-		rtp_session_enable_video_bandwidth_estimator(margaux_video_stream->sessions.rtp_session, &params);
+		rtp_session_enable_video_bandwidth_estimator(
+		    ms_media_stream_sessions_get_rtp_session(margaux_video_stream->sessions), &params);
 		video_manager_start(margaux, payload, marielle->local_rtp, 0, NULL);
 #else
 		ms_fatal("Unsupported stream type [%s]", ms_format_type_to_string(marielle->type));
@@ -263,7 +264,7 @@ void start_adaptive_stream(MSFormatType type,
 
 	ms_qos_analyzer_set_on_action_suggested(ms_bitrate_controller_get_qos_analyzer(marielle_ms->rc),
 	                                        qos_analyzer_on_action_suggested, *pmarielle);
-	rtp_session_enable_network_simulation(marielle_ms->sessions.rtp_session, &params);
+	rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(marielle_ms->sessions), &params);
 
 	free(recorded_file);
 	free(file);
@@ -382,8 +383,8 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 						rb = rtcp_RR_get_report_block(rtcp_packet, 0);
 					}
 
-					if (rb &&
-					    ortp_loss_rate_estimator_process_report_block(ctx->estimator, ms->sessions.rtp_session, rb)) {
+					if (rb && ortp_loss_rate_estimator_process_report_block(
+					              ctx->estimator, ms_media_stream_sessions_get_rtp_session(ms->sessions), rb)) {
 						float diff = (float)fabs(ortp_loss_rate_estimator_get_value(ctx->estimator) - ctx->loss_rate);
 						BC_ASSERT_GREATER(diff, 0, float, "%f");
 						BC_ASSERT_LOWER(diff, 10, float, "%f");
@@ -406,7 +407,7 @@ static void packet_duplication(void) {
 	start_adaptive_stream(MSAudio, &marielle, &margaux, SPEEX_PAYLOAD_TYPE, 32000, 0, 0.0f, 50, dup_ratio, FALSE);
 	media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms, FALSE);
 	iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
-	stats = rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
+	stats = rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(margaux->video_stream->ms.sessions));
 	BC_ASSERT_EQUAL(stats->packet_dup_recv, dup_ratio ? (uint64_t)(stats->packet_recv / (dup_ratio + 1)) : 0,
 	                unsigned long long, "%llu");
 	/*in theory, cumulative loss should be the invert of duplicated count, but
@@ -419,7 +420,7 @@ static void packet_duplication(void) {
 	start_adaptive_stream(MSAudio, &marielle, &margaux, SPEEX_PAYLOAD_TYPE, 32000, 0, 0.0f, 50, dup_ratio, FALSE);
 	media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms, FALSE);
 	iterate_adaptive_stream(marielle, margaux, 10000, NULL, 0);
-	stats = rtp_session_get_stats(margaux->video_stream->ms.sessions.rtp_session);
+	stats = rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(margaux->video_stream->ms.sessions));
 	BC_ASSERT_EQUAL(stats->packet_dup_recv, dup_ratio ? (uint64_t)(stats->packet_recv / (dup_ratio + 1)) : 0,
 	                unsigned long long, "%llu");
 	BC_ASSERT_LOWER(stats->cum_packet_loss, (int64_t)(-.5 * stats->packet_dup_recv), long long, "%lld");
@@ -439,13 +440,15 @@ static void upload_bandwidth_computation(void) {
 		media_stream_enable_adaptive_bitrate_control(&marielle->audio_stream->ms, FALSE);
 
 		for (i = 0; i < 5; i++) {
-			rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, (float)i);
+			rtp_session_set_duplication_ratio(
+			    ms_media_stream_sessions_get_rtp_session(marielle->audio_stream->ms.sessions), (float)i);
 			iterate_adaptive_stream(marielle, margaux, 5000, NULL, 0);
 			/*since PCMA uses 80kbit/s, upload bandwidth should just be 80+80*duplication_ratio kbit/s */
-			BC_ASSERT_LOWER(
-			    (float)fabs(rtp_session_get_send_bandwidth(marielle->audio_stream->ms.sessions.rtp_session) / 1000. -
-			                80. * (i + 1)),
-			    5.f, float, "%f");
+			BC_ASSERT_LOWER((float)fabs(rtp_session_get_send_bandwidth(ms_media_stream_sessions_get_rtp_session(
+			                                marielle->audio_stream->ms.sessions)) /
+			                                1000. -
+			                            80. * (i + 1)),
+			                5.f, float, "%f");
 		}
 		stop_adaptive_stream(marielle, margaux, TRUE);
 	}
@@ -476,9 +479,11 @@ static void loss_rate_estimation_bv16(void) {
 			start_adaptive_stream(MSAudio, &marielle, &margaux, BV16_PAYLOAD_TYPE, 8000, 0, (float)loss_rate, 0, 0.0f,
 			                      (bool_t)plc_disabled);
 
-			ctx.estimator = ortp_loss_rate_estimator_new(120, 2500, marielle->audio_stream->ms.sessions.rtp_session);
+			ctx.estimator = ortp_loss_rate_estimator_new(
+			    120, 2500, ms_media_stream_sessions_get_rtp_session(marielle->audio_stream->ms.sessions));
 			ctx.q = ortp_ev_queue_new();
-			rtp_session_register_event_queue(marielle->audio_stream->ms.sessions.rtp_session, ctx.q);
+			rtp_session_register_event_queue(
+			    ms_media_stream_sessions_get_rtp_session(marielle->audio_stream->ms.sessions), ctx.q);
 			ctx.loss_rate = loss_rate;
 
 			/*loss rate should be the initial one*/
@@ -521,9 +526,11 @@ static void loss_rate_estimation(void) {
 		start_adaptive_stream(MSAudio, &marielle, &margaux, PCMA8_PAYLOAD_TYPE, 8000, 0, (float)loss_rate, 0, 0.0f,
 		                      FALSE);
 
-		ctx.estimator = ortp_loss_rate_estimator_new(120, 2500, marielle->audio_stream->ms.sessions.rtp_session);
+		ctx.estimator = ortp_loss_rate_estimator_new(
+		    120, 2500, ms_media_stream_sessions_get_rtp_session(marielle->audio_stream->ms.sessions));
 		ctx.q = ortp_ev_queue_new();
-		rtp_session_register_event_queue(marielle->audio_stream->ms.sessions.rtp_session, ctx.q);
+		rtp_session_register_event_queue(ms_media_stream_sessions_get_rtp_session(marielle->audio_stream->ms.sessions),
+		                                 ctx.q);
 		ctx.loss_rate = loss_rate;
 
 		/*loss rate should be the initial one*/
@@ -533,7 +540,7 @@ static void loss_rate_estimation(void) {
 #if 0
 /* Loss rate is not correctly estimated when using duplicates (see comment in ortp/src/rtcp.c ortp_loss_rate_estimator_process_report_block function */
 		/*let's set some duplication. loss rate should NOT be changed */
-		rtp_session_set_duplication_ratio(marielle->audio_stream->ms.sessions.rtp_session, 10);
+		rtp_session_set_duplication_ratio(ms_media_stream_sessions_get_rtp_session(marielle->audio_stream->ms.sessions), 10);
 		wait_for_until_with_parse_events(&marielle->audio_stream->ms, &margaux->audio_stream->ms, &loss_rate, 100,
 		                                 10000, event_queue_cb, &ctx, NULL, NULL);
 #endif
@@ -695,9 +702,9 @@ static void audio_bandwidth_estimator_base(bool_t use_srtp) {
 
 	if (use_srtp) {
 		const char *aes_gcm_128_bits_key = "bkTcxXe9N3/vHKKiqQAqmL0qJ+CSiWRat/Tadg==";
-		BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle_ms->sessions), MS_AEAD_AES_128_GCM,
+		BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(marielle_ms->sessions, MS_AEAD_AES_128_GCM,
 		                                                              aes_gcm_128_bits_key, MSSrtpKeySourceSDES) == 0);
-		BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux_ms->sessions), MS_AEAD_AES_128_GCM,
+		BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(margaux_ms->sessions, MS_AEAD_AES_128_GCM,
 		                                                              aes_gcm_128_bits_key, MSSrtpKeySourceSDES) == 0);
 	}
 	/* Network simulator: limit Marielle's outbound to 24kb/s */
@@ -709,7 +716,8 @@ static void audio_bandwidth_estimator_base(bool_t use_srtp) {
 	networkParams.max_buffer_size = 72000;
 	networkParams.latency = 60;
 	networkParams.mode = OrtpNetworkSimulatorOutbound;
-	rtp_session_enable_network_simulation(marielle_ms->sessions.rtp_session, &networkParams);
+	rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(marielle_ms->sessions),
+	                                      &networkParams);
 
 	/* Start audio streams */
 	audio_manager_start(marielle, OPUS_PAYLOAD_TYPE, margaux->local_rtp, 60000, file, NULL); // target 60 kb/s
@@ -748,7 +756,8 @@ static void audio_bandwidth_estimator_base(bool_t use_srtp) {
 	// remove the outbound limit on marielle's side, bandwidth estimator can figure that we can go back to the
 	// original target bitrate
 	networkParams.enabled = FALSE;
-	rtp_session_enable_network_simulation(marielle_ms->sessions.rtp_session, &networkParams);
+	rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(marielle_ms->sessions),
+	                                      &networkParams);
 	// Wait for Marielle target bitrate to be back to the original target bitrate, it may take a while
 	iterate_adaptive_stream(marielle, margaux, 25000, &marielle_ms->target_bitrate, 59999);
 	BC_ASSERT_EQUAL(marielle_ms->target_bitrate, 60000, int, "%d");

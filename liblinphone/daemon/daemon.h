@@ -243,10 +243,10 @@ struct AudioStreamAndOther {
 	LinphoneCallStats *stats;
 	AudioStreamAndOther(AudioStream *as) : stream(as) {
 		queue = ortp_ev_queue_new();
-		rtp_session_register_event_queue(as->ms.sessions.rtp_session, queue);
+		rtp_session_register_event_queue(ms_media_stream_sessions_get_rtp_session(as->ms.sessions), queue);
 	}
 	~AudioStreamAndOther() {
-		rtp_session_unregister_event_queue(stream->ms.sessions.rtp_session, queue);
+		rtp_session_unregister_event_queue(ms_media_stream_sessions_get_rtp_session(stream->ms.sessions), queue);
 		ortp_ev_queue_destroy(queue);
 	}
 };

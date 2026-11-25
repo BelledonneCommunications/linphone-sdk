@@ -82,7 +82,7 @@ int main(BCTBX_UNUSED(int argc), BCTBX_UNUSED(char *argv[])) {
 
 			/* test code */
 			if (n == 400) {
-				ms_ticker_detach(vs->ms.sessions.ticker, vs->source);
+				ms_ticker_detach(ms_media_stream_sessions_get_ticker(vs->ms.sessions), vs->source);
 
 				vs->tee = ms_factory_create_filter(factory, MS_TEE_ID);
 
@@ -93,7 +93,7 @@ int main(BCTBX_UNUSED(int argc), BCTBX_UNUSED(char *argv[])) {
 				ms_filter_link(vs->tee, 1, vs->output2, 1);
 
 				// ms_filter_unlink(vs->tee,0,vs->output,0);
-				ms_ticker_attach(vs->ms.sessions.ticker, vs->source);
+				ms_ticker_attach(ms_media_stream_sessions_get_ticker(vs->ms.sessions), vs->source);
 			}
 			if (n == 500) {
 				int corner = 1;
@@ -112,7 +112,7 @@ int main(BCTBX_UNUSED(int argc), BCTBX_UNUSED(char *argv[])) {
 				ms_filter_call_method(vs->output2, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, &corner);
 			}
 			if (n == 900) {
-				ms_ticker_detach(vs->ms.sessions.ticker, vs->source);
+				ms_ticker_detach(ms_media_stream_sessions_get_ticker(vs->ms.sessions), vs->source);
 
 				ms_filter_unlink(vs->pixconv, 0, vs->tee, 0);
 				ms_filter_unlink(vs->tee, 0, vs->output2, 0);
@@ -122,7 +122,7 @@ int main(BCTBX_UNUSED(int argc), BCTBX_UNUSED(char *argv[])) {
 
 				ms_filter_link(vs->pixconv, 0, vs->output2, 0);
 
-				ms_ticker_attach(vs->ms.sessions.ticker, vs->source);
+				ms_ticker_attach(ms_media_stream_sessions_get_ticker(vs->ms.sessions), vs->source);
 			}
 		}
 		video_preview_stop(vs);

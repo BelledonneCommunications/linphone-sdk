@@ -52,14 +52,17 @@ LINPHONE_BEGIN_NAMESPACE
 
 MS2AudioStream::MS2AudioStream(StreamsGroup &sg, const OfferAnswerContext &params) : MS2Stream(sg, params) {
 	string bindIp = getBindIp();
-	mStream = audio_stream_new2(getCCore()->factory, bindIp.empty() ? nullptr : bindIp.c_str(), mPortConfig.rtpPort,
-	                            mPortConfig.rtcpPort);
+	ms_media_stream_sessions_set_rtp_session(
+	    mSessions, ms_create_duplex_rtp_session(bindIp.empty() ? nullptr : bindIp.c_str(), mPortConfig.rtpPort,
+	                                            mPortConfig.rtcpPort, ms_factory_get_mtu(getCCore()->factory)));
+	mStream = audio_stream_new_with_sessions(getCCore()->factory, mSessions);
 	mIsOfferer = params.localIsOfferer;
 	mStream->disable_record_on_mute = getCCore()->sound_conf.disable_record_on_mute;
 
 	/* initialize ZRTP if it supported as default encryption or as optional encryption and capability negotiation is
 	 * enabled */
-	if (!mSessions.zrtp_context && getMediaSessionPrivate().isMediaEncryptionAccepted(LinphoneMediaEncryptionZRTP)) {
+	if (!ms_media_stream_sessions_get_zrtp_context(mSessions) &&
+	    getMediaSessionPrivate().isMediaEncryptionAccepted(LinphoneMediaEncryptionZRTP)) {
 		MS2AudioStream::initZrtp();
 	}
 	initializeSessions((MediaStream *)mStream);
@@ -709,7 +712,7 @@ void MS2AudioStream::stop() {
 
 	/* In mediastreamer2, stop actually stops and destroys. We immediately need to recreate the stream object for
 	 * later use, keeping the sessions (for RTP, SRTP, ZRTP etc) that were setup at the beginning. */
-	mStream = audio_stream_new_with_sessions(getCCore()->factory, &mSessions);
+	mStream = audio_stream_new_with_sessions(getCCore()->factory, mSessions);
 	getMediaSessionPrivate().getCurrentParams()->getPrivate()->setUsedAudioCodec(nullptr);
 
 	if (mCurrentCaptureCard) ms_snd_card_unref(mCurrentCaptureCard);
@@ -720,11 +723,8 @@ void MS2AudioStream::stop() {
 }
 
 void MS2AudioStream::startZrtp() {
-	if (!mSessions.zrtp_context) {
+	if (!ms_media_stream_sessions_get_zrtp_context(mSessions)) {
 		initZrtp();
-		// Copy newly created zrtp context into mSessions
-		MediaStream *ms = getMediaStream();
-		media_stream_reclaim_sessions(ms, &mSessions);
 	}
 	audio_stream_start_zrtp(mStream);
 }
@@ -735,9 +735,9 @@ void MS2AudioStream::startZrtpPrimaryChannel(const OfferAnswerContext &params) {
 
 	const auto &remote = params.getRemoteStreamDescription();
 	if (remote.getChosenConfiguration().hasZrtpHash() == 1) {
-		int retval =
-		    ms_zrtp_setPeerHelloHash(mSessions.zrtp_context, (uint8_t *)remote.getChosenConfiguration().getZrtpHash(),
-		                             strlen((const char *)(remote.getChosenConfiguration().getZrtpHash())));
+		int retval = ms_zrtp_setPeerHelloHash(ms_media_stream_sessions_get_zrtp_context(mSessions),
+		                                      (uint8_t *)remote.getChosenConfiguration().getZrtpHash(),
+		                                      strlen((const char *)(remote.getChosenConfiguration().getZrtpHash())));
 		if (retval != 0) lError() << "ZRTP hash mismatch 0x" << hex << retval;
 	}
 }

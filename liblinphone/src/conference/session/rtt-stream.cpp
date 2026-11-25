@@ -40,8 +40,10 @@ LINPHONE_BEGIN_NAMESPACE
 
 MS2RTTStream::MS2RTTStream(StreamsGroup &sg, const OfferAnswerContext &params) : MS2Stream(sg, params) {
 	string bindIp = getBindIp();
-	mStream = text_stream_new2(getCCore()->factory, bindIp.empty() ? nullptr : bindIp.c_str(), mPortConfig.rtpPort,
-	                           mPortConfig.rtcpPort);
+	ms_media_stream_sessions_set_rtp_session(
+	    mSessions, ms_create_duplex_rtp_session(bindIp.empty() ? nullptr : bindIp.c_str(), mPortConfig.rtpPort,
+	                                            mPortConfig.rtcpPort, ms_factory_get_mtu(getCCore()->factory)));
+	mStream = text_stream_new_with_sessions(getCCore()->factory, mSessions);
 	initializeSessions(&mStream->ms);
 }
 
@@ -112,7 +114,7 @@ void MS2RTTStream::stop() {
 	text_stream_stop(mStream);
 	/* In mediastreamer2, stop actually stops and destroys. We immediately need to recreate the stream object for later
 	 * use, keeping the sessions (for RTP, SRTP, ZRTP etc) that were setup at the beginning. */
-	mStream = text_stream_new_with_sessions(getCCore()->factory, &mSessions);
+	mStream = text_stream_new_with_sessions(getCCore()->factory, mSessions);
 }
 
 void MS2RTTStream::finish() {

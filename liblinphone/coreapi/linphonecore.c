@@ -4273,7 +4273,7 @@ static void apply_jitter_value(LinphoneCore *lc, int value, MSFormatType stype) 
 		MediaStream *ms = (stype == MSAudio) ? call->getMediaStream(LinphoneStreamTypeAudio)
 		                                     : call->getMediaStream(LinphoneStreamTypeVideo);
 		if (ms) {
-			RtpSession *s = ms->sessions.rtp_session;
+			RtpSession *s = ms_media_stream_sessions_get_rtp_session(ms->sessions);
 			if (s) {
 				if (value > 0) {
 					ms_message("Jitter buffer size set to [%i] ms on call [%p]", value, call.get());

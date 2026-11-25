@@ -1045,8 +1045,9 @@ LinphoneStatus linphone_core_set_network_simulator_params(LinphoneCore *lc, cons
 			L_GET_PRIVATE(ms)->getStreamsGroup().forEach<LinphonePrivate::MS2Stream>(
 			    [params](LinphonePrivate::MS2Stream *ms2s) {
 				    MediaStream *stream = ms2s->getMediaStream();
-				    if (stream && stream->sessions.rtp_session) {
-					    rtp_session_enable_network_simulation(stream->sessions.rtp_session, params);
+				    if (stream && ms_media_stream_sessions_get_rtp_session(stream->sessions)) {
+					    rtp_session_enable_network_simulation(
+					        ms_media_stream_sessions_get_rtp_session(stream->sessions), params);
 				    }
 			    });
 		}

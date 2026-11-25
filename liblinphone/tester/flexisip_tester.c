@@ -1108,20 +1108,22 @@ static void _call_with_ipv6(bool_t caller_with_ipv6, bool_t callee_with_ipv6) {
 		BC_ASSERT_EQUAL(is_remote_contact_ipv6(marie_call), callee_with_ipv6, int, "%i");
 
 		/*check that the RTP destinations are IPv6 (flexisip should propose an IPv6 relay for parties with IPv6)*/
-		BC_ASSERT_EQUAL(
-		    is_sending_ipv6(linphone_call_get_stream(marie_call, LinphoneStreamTypeAudio)->sessions.rtp_session, FALSE),
-		    caller_with_ipv6, int, "%i");
-		BC_ASSERT_EQUAL(
-		    is_sending_ipv6(linphone_call_get_stream(marie_call, LinphoneStreamTypeAudio)->sessions.rtp_session, TRUE),
-		    caller_with_ipv6, int, "%i");
-		BC_ASSERT_EQUAL(
-		    is_sending_ipv6(linphone_call_get_stream(pauline_call, LinphoneStreamTypeAudio)->sessions.rtp_session,
-		                    FALSE),
-		    callee_with_ipv6, int, "%i");
-		BC_ASSERT_EQUAL(
-		    is_sending_ipv6(linphone_call_get_stream(pauline_call, LinphoneStreamTypeAudio)->sessions.rtp_session,
-		                    TRUE),
-		    callee_with_ipv6, int, "%i");
+		BC_ASSERT_EQUAL(is_sending_ipv6(ms_media_stream_sessions_get_rtp_session(
+		                                    linphone_call_get_stream(marie_call, LinphoneStreamTypeAudio)->sessions),
+		                                FALSE),
+		                caller_with_ipv6, int, "%i");
+		BC_ASSERT_EQUAL(is_sending_ipv6(ms_media_stream_sessions_get_rtp_session(
+		                                    linphone_call_get_stream(marie_call, LinphoneStreamTypeAudio)->sessions),
+		                                TRUE),
+		                caller_with_ipv6, int, "%i");
+		BC_ASSERT_EQUAL(is_sending_ipv6(ms_media_stream_sessions_get_rtp_session(
+		                                    linphone_call_get_stream(pauline_call, LinphoneStreamTypeAudio)->sessions),
+		                                FALSE),
+		                callee_with_ipv6, int, "%i");
+		BC_ASSERT_EQUAL(is_sending_ipv6(ms_media_stream_sessions_get_rtp_session(
+		                                    linphone_call_get_stream(pauline_call, LinphoneStreamTypeAudio)->sessions),
+		                                TRUE),
+		                callee_with_ipv6, int, "%i");
 	}
 
 	liblinphone_tester_check_rtcp(marie, pauline);

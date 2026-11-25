@@ -424,8 +424,8 @@ static void audio_stream_base(const char *audio_file_marielle,
 	    audio_stream_new2(msFactory, marielle_local_ip, marielle_local_rtp_port, marielle_local_rtcp_port);
 	AudioStream *margaux =
 	    audio_stream_new2(msFactory, margaux_local_ip, margaux_local_rtp_port, margaux_local_rtcp_port);
-	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session, TRUE);
-	rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session, TRUE);
+	rtp_session_set_multicast_loopback(ms_media_stream_sessions_get_rtp_session(marielle->ms.sessions), TRUE);
+	rtp_session_set_multicast_loopback(ms_media_stream_sessions_get_rtp_session(margaux->ms.sessions), TRUE);
 	int target_bitrate = 48000;
 	media_stream_set_target_network_bitrate(&marielle->ms, target_bitrate);
 	media_stream_set_target_network_bitrate(&margaux->ms, target_bitrate);
@@ -532,8 +532,8 @@ static void audio_stream_without_noise_suppressor(const char *audio_file_mariell
 	    audio_stream_new2(msFactory, marielle_local_ip, marielle_local_rtp_port, marielle_local_rtcp_port);
 	AudioStream *margaux =
 	    audio_stream_new2(msFactory, margaux_local_ip, margaux_local_rtp_port, margaux_local_rtcp_port);
-	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session, TRUE);
-	rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session, TRUE);
+	rtp_session_set_multicast_loopback(ms_media_stream_sessions_get_rtp_session(marielle->ms.sessions), TRUE);
+	rtp_session_set_multicast_loopback(ms_media_stream_sessions_get_rtp_session(margaux->ms.sessions), TRUE);
 	int target_bitrate = 48000;
 	media_stream_set_target_network_bitrate(&marielle->ms, target_bitrate);
 	media_stream_set_target_network_bitrate(&margaux->ms, target_bitrate);
@@ -768,8 +768,8 @@ static void audio_stream_at_start(const char *audio_file_marielle,
 	    audio_stream_new2(msFactory, marielle_local_ip, marielle_local_rtp_port, marielle_local_rtcp_port);
 	AudioStream *margaux =
 	    audio_stream_new2(msFactory, margaux_local_ip, margaux_local_rtp_port, margaux_local_rtcp_port);
-	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session, TRUE);
-	rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session, TRUE);
+	rtp_session_set_multicast_loopback(ms_media_stream_sessions_get_rtp_session(marielle->ms.sessions), TRUE);
+	rtp_session_set_multicast_loopback(ms_media_stream_sessions_get_rtp_session(margaux->ms.sessions), TRUE);
 	int target_bitrate = 48000;
 	media_stream_set_target_network_bitrate(&marielle->ms, target_bitrate);
 	media_stream_set_target_network_bitrate(&margaux->ms, target_bitrate);

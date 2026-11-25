@@ -510,9 +510,8 @@ static void audio_bandwidth_estimation_base(bool srtp) {
 	wait_for_until(marie->lc, pauline->lc, NULL, 0, 4000);
 	BC_ASSERT_GREATER(linphone_core_manager_get_mean_audio_up_bw(marie), 45, int, "%i");
 
-	marie_abe_stats = rtp_session_get_audio_bandwidth_estimator_stats(
-	    linphone_call_get_stream(linphone_core_get_current_call(marie->lc), LinphoneStreamTypeAudio)
-	        ->sessions.rtp_session);
+	marie_abe_stats = rtp_session_get_audio_bandwidth_estimator_stats(ms_media_stream_sessions_get_rtp_session(
+	    linphone_call_get_stream(linphone_core_get_current_call(marie->lc), LinphoneStreamTypeAudio)->sessions));
 	marie_sent_dup = marie_abe_stats->sent_dup;
 	BC_ASSERT_GREATER(marie_sent_dup, 0, int, "%d");
 
@@ -524,10 +523,14 @@ static void audio_bandwidth_estimation_base(bool srtp) {
 	// Check the audio bandwidth estimator is now
 	// - disabled on Pauline side(as VBE is enabled)
 	// - enabled on Marie's side as Video is send only so the VBE is disabled
-	BC_ASSERT_FALSE(linphone_call_get_stream(linphone_core_get_current_call(pauline->lc), LinphoneStreamTypeAudio)
-	                    ->sessions.rtp_session->audio_bandwidth_estimator_enabled);
-	BC_ASSERT_TRUE(linphone_call_get_stream(linphone_core_get_current_call(marie->lc), LinphoneStreamTypeAudio)
-	                   ->sessions.rtp_session->audio_bandwidth_estimator_enabled);
+	BC_ASSERT_FALSE(
+	    ms_media_stream_sessions_get_rtp_session(
+	        linphone_call_get_stream(linphone_core_get_current_call(pauline->lc), LinphoneStreamTypeAudio)->sessions)
+	        ->audio_bandwidth_estimator_enabled);
+	BC_ASSERT_TRUE(
+	    ms_media_stream_sessions_get_rtp_session(
+	        linphone_call_get_stream(linphone_core_get_current_call(marie->lc), LinphoneStreamTypeAudio)->sessions)
+	        ->audio_bandwidth_estimator_enabled);
 
 	// Set the constraint back (with a 200 kb/s constraint, that shall trigger a congestion with the video enabled)
 	// The audio is not bandwidth controlled so 60kb/s goes to it.

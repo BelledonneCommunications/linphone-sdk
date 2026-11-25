@@ -101,12 +101,12 @@ void text_stream_tester_destroy(text_stream_tester_t *obj) {
 
 static void create_text_stream(text_stream_tester_t *tst, int payload_type) {
 	tst->ts = text_stream_new2(_factory, tst->local_ip, tst->local_rtp, tst->local_rtcp);
-	tst->local_rtp = rtp_session_get_local_port(tst->ts->ms.sessions.rtp_session);
-	tst->local_rtcp = rtp_session_get_local_rtcp_port(tst->ts->ms.sessions.rtp_session);
+	tst->local_rtp = rtp_session_get_local_port(ms_media_stream_sessions_get_rtp_session(tst->ts->ms.sessions));
+	tst->local_rtcp = rtp_session_get_local_rtcp_port(ms_media_stream_sessions_get_rtp_session(tst->ts->ms.sessions));
 	reset_stats(&tst->stats);
-	rtp_session_set_multicast_loopback(tst->ts->ms.sessions.rtp_session, TRUE);
+	rtp_session_set_multicast_loopback(ms_media_stream_sessions_get_rtp_session(tst->ts->ms.sessions), TRUE);
 	tst->stats.q = ortp_ev_queue_new();
-	rtp_session_register_event_queue(tst->ts->ms.sessions.rtp_session, tst->stats.q);
+	rtp_session_register_event_queue(ms_media_stream_sessions_get_rtp_session(tst->ts->ms.sessions), tst->stats.q);
 	tst->payload_type = payload_type;
 }
 
@@ -142,8 +142,8 @@ static void init_text_streams(text_stream_tester_t *tst1,
 
 	/* Configure network simulator. */
 	if ((params != NULL) && (params->enabled == TRUE)) {
-		rtp_session_enable_network_simulation(tst1->ts->ms.sessions.rtp_session, params);
-		rtp_session_enable_network_simulation(tst2->ts->ms.sessions.rtp_session, params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(tst1->ts->ms.sessions), params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(tst2->ts->ms.sessions), params);
 	}
 
 	text_stream_start(tst1->ts, &rtp_profile, tst2->local_ip, tst2->local_rtp, tst2->local_ip, tst2->local_rtcp,
@@ -256,23 +256,23 @@ static void srtp_protected_text_stream(void) {
 	int dummy = 0;
 
 	init_text_streams(marielle, margaux, FALSE, FALSE, NULL, T140_PAYLOAD_TYPE /* ignored */);
-	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_encryption_mandatory(&marielle->ts->ms.sessions, TRUE), 0, int, "%d");
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_encryption_mandatory(marielle->ts->ms.sessions, TRUE), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ms_srtp_supported());
 
-	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ts->ms.sessions), MS_AES_128_SHA1_32,
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_send_key_b64(marielle->ts->ms.sessions, MS_AES_128_SHA1_32,
 	                                                               "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj",
 	                                                               MSSrtpKeySourceSDES),
 	                0, int, "%d");
-	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_send_key_b64(&(margaux->ts->ms.sessions), MS_AES_128_SHA1_32,
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_send_key_b64(margaux->ts->ms.sessions, MS_AES_128_SHA1_32,
 	                                                               "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F",
 	                                                               MSSrtpKeySourceSDES),
 	                0, int, "%d");
-	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux->ts->ms.sessions), MS_AES_128_SHA1_32,
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_recv_key_b64(margaux->ts->ms.sessions, MS_AES_128_SHA1_32,
 	                                                               "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj",
 	                                                               MSSrtpKeySourceSDES),
 	                0, int, "%d");
-	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_recv_key_b64(&(marielle->ts->ms.sessions), MS_AES_128_SHA1_32,
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_recv_key_b64(marielle->ts->ms.sessions, MS_AES_128_SHA1_32,
 	                                                               "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F",
 	                                                               MSSrtpKeySourceSDES),
 	                0, int, "%d");

@@ -81,7 +81,7 @@ static void configure_sink(VideoStream *stream, MSFilter *sink) {
 	ms_filter_call_method(stream->ms.decoder, MS_FILTER_GET_OUTPUT_FMT, &pf);
 	if (pf.fmt) {
 		MSPinFormat pinfmt = {0};
-		RtpSession *session = stream->ms.sessions.rtp_session;
+		RtpSession *session = stream->ms.sessions->rtp_session;
 		PayloadType *pt =
 		    rtp_profile_get_payload(rtp_session_get_profile(session), rtp_session_get_recv_payload_type(session));
 		if (!pt)
@@ -133,10 +133,10 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 	} else {
 
 		/* Check the mid in packet matches the stream's session one */
-		streamMid = rtp_session_get_mid(stream->ms.sessions.rtp_session);
+		streamMid = rtp_session_get_mid(stream->ms.sessions->rtp_session);
 		if (streamMid == NULL) {
 			ms_warning("New incoming SSRC %u but mid of session %p is unknown at this time.", ssrc,
-			           stream->ms.sessions.rtp_session);
+			           stream->ms.sessions->rtp_session);
 			goto end;
 		}
 		sMid = bctbx_malloc0(midSize + 1);
@@ -154,7 +154,7 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 		 * In that case simply return the stream's main RTP session, so that it get re-initialized
 		 * with this new SSRC.
 		 */
-		*newSession = stream->ms.sessions.rtp_session;
+		*newSession = stream->ms.sessions->rtp_session;
 		ms_message("New incoming SSRC %u becomes the current stream for mid %s", ssrc, sMid);
 		goto end;
 	}
@@ -170,9 +170,9 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 	for (int i = 0; i < VIDEO_STREAM_MAX_BRANCHES; i++) {
 		if (stream->branches[i].session == NULL) {
 			*newSession =
-			    media_stream_rtp_session_new_from_session(stream->ms.sessions.rtp_session, RTP_SESSION_RECVONLY);
-			stream->ms.sessions.auxiliary_sessions =
-			    bctbx_list_append(stream->ms.sessions.auxiliary_sessions, *newSession);
+			    media_stream_rtp_session_new_from_session(stream->ms.sessions->rtp_session, RTP_SESSION_RECVONLY);
+			stream->ms.sessions->auxiliary_sessions =
+			    bctbx_list_append(stream->ms.sessions->auxiliary_sessions, *newSession);
 
 			stream->branches[i].session = *newSession;
 			ms_filter_call_method(stream->branches[i].recv, MS_RTP_RECV_SET_SESSION, *newSession);
@@ -236,8 +236,8 @@ void video_stream_free(VideoStream *stream) {
 
 	if (stream->ms.video_quality_controller) ms_video_quality_controller_destroy(stream->ms.video_quality_controller);
 
-	if (stream->ms.sessions.rtp_session) {
-		RtpBundle *bundle = stream->ms.sessions.rtp_session->bundle;
+	if (stream->ms.sessions->rtp_session) {
+		RtpBundle *bundle = stream->ms.sessions->rtp_session->bundle;
 		RtpSession *primary_session = bundle ? rtp_bundle_get_primary_session(bundle) : NULL;
 		if (primary_session) {
 			rtp_session_signal_disconnect_by_callback_and_user_data(
@@ -370,10 +370,10 @@ static void video_stream_process_encoder_control(VideoStream *stream,
 
 static bool_t video_stream_is_rtcp_ssrc_valid(VideoStream *stream, uint32_t ssrc) {
 	// Check first the send ssrc of the current RtpSession
-	if (ssrc == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) return TRUE;
+	if (ssrc == rtp_session_get_send_ssrc(stream->ms.sessions->rtp_session)) return TRUE;
 
 	// Then check auxiliary RtpSessions
-	for (bctbx_list_t *it = stream->ms.sessions.auxiliary_sessions; it != NULL; it = it->next) {
+	for (bctbx_list_t *it = stream->ms.sessions->auxiliary_sessions; it != NULL; it = it->next) {
 		RtpSession *aux = (RtpSession *)it->data;
 		if (aux != NULL && ssrc == rtp_session_get_send_ssrc(aux)) return TRUE;
 	}
@@ -409,7 +409,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, const mblk_t *m
 				} else {
 					ms_message("Ignoring RTCP FIR on SSRC [%x]. SSRC of video sender is [%x]",
 					           rtcp_fb_fir_fci_get_ssrc(fci),
-					           rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session));
+					           rtp_session_get_send_ssrc(stream->ms.sessions->rtp_session));
 				}
 			}
 			return;
@@ -460,7 +460,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, const mblk_t *m
 		} else {
 			ms_message("RTCP payload specific feedback of type %d for unknown SSRC %x was ignored. Our SSRC is %x",
 			           rtcp_PSFB_get_type(m), rtcp_PSFB_get_media_source_ssrc(m),
-			           rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session));
+			           rtp_session_get_send_ssrc(stream->ms.sessions->rtp_session));
 		}
 	}
 }
@@ -475,7 +475,7 @@ void video_stream_set_encoder_control_callback(VideoStream *stream, VideoStreamE
 }
 
 static void stop_preload_graph(VideoStream *stream) {
-	ms_ticker_detach(stream->ms.sessions.ticker, stream->ms.rtprecv);
+	ms_ticker_detach(stream->ms.sessions->ticker, stream->ms.rtprecv);
 	ms_filter_unlink(stream->ms.rtprecv, 0, stream->ms.voidsink, 0);
 	ms_filter_destroy(stream->ms.voidsink);
 	ms_filter_destroy(stream->ms.rtprecv);
@@ -488,11 +488,11 @@ static void video_stream_track_fps_changes(VideoStream *stream) {
 		stream->last_fps_check = curtime;
 		return;
 	}
-	if (curtime - stream->last_fps_check >= 2000 && stream->configured_fps > 0 && stream->ms.sessions.ticker) {
+	if (curtime - stream->last_fps_check >= 2000 && stream->configured_fps > 0 && stream->ms.sessions->ticker) {
 		MSTickerLateEvent late_ev = {0};
 		/*we must check that no late tick occured during the last 2 seconds, otherwise the fps measurement is severely
 		 * biased.*/
-		ms_ticker_get_last_late_tick(stream->ms.sessions.ticker, &late_ev);
+		ms_ticker_get_last_late_tick(stream->ms.sessions->ticker, &late_ev);
 
 		if (curtime > late_ev.time + 2000) {
 			if (stream->source && stream->ms.encoder && ms_filter_has_method(stream->source, MS_FILTER_GET_FPS) &&
@@ -600,17 +600,15 @@ VideoStream *video_stream_new(MSFactory *factory, int loc_rtp_port, int loc_rtcp
 }
 
 VideoStream *video_stream_new2(MSFactory *factory, const char *ip, int loc_rtp_port, int loc_rtcp_port) {
-	MSMediaStreamSessions sessions = {0};
+	MSMediaStreamSessions *sessions = ms_media_stream_sessions_new();
 	VideoStream *obj;
-	sessions.rtp_session = ms_create_duplex_rtp_session(ip, loc_rtp_port, loc_rtcp_port, ms_factory_get_mtu(factory));
-	obj = video_stream_new_with_sessions(factory, &sessions);
-	obj->ms.owns_sessions = TRUE;
-	obj->display_mode = MSVideoDisplayHybrid;
-	obj->preview_display_mode = MSVideoDisplayHybrid;
+	sessions->rtp_session = ms_create_duplex_rtp_session(ip, loc_rtp_port, loc_rtcp_port, ms_factory_get_mtu(factory));
+	obj = video_stream_new_with_sessions(factory, sessions);
+	ms_media_stream_sessions_unref(sessions);
 	return obj;
 }
 
-VideoStream *video_stream_new_with_sessions(MSFactory *factory, const MSMediaStreamSessions *sessions) {
+VideoStream *video_stream_new_with_sessions(MSFactory *factory, MSMediaStreamSessions *sessions) {
 	VideoStream *stream = (VideoStream *)ms_new0(VideoStream, 1);
 	const OrtpRtcpXrMediaCallbacks rtcp_xr_media_cbs = {NULL,
 	                                                    NULL,
@@ -620,12 +618,13 @@ VideoStream *video_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 	                                                    stream};
 
 	stream->ms.type = MSVideo;
-	stream->ms.sessions = *sessions;
+	stream->display_mode = MSVideoDisplayHybrid;
+	stream->preview_display_mode = MSVideoDisplayHybrid;
 
 	media_stream_init(&stream->ms, factory, sessions);
 
-	rtp_session_resync(stream->ms.sessions.rtp_session);
-	stream->ms.qi = ms_quality_indicator_new(stream->ms.sessions.rtp_session);
+	rtp_session_resync(stream->ms.sessions->rtp_session);
+	stream->ms.qi = ms_quality_indicator_new(stream->ms.sessions->rtp_session);
 	ms_quality_indicator_set_label(stream->ms.qi, "video");
 
 	stream->ms.rtpsend = ms_factory_create_filter(stream->ms.factory, MS_RTP_SEND_ID);
@@ -653,7 +652,7 @@ VideoStream *video_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 		stream->recorder_output = ms_factory_create_filter(stream->ms.factory, MS_ITC_SINK_ID);
 	}
 
-	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, &rtcp_xr_media_cbs);
+	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions->rtp_session, &rtcp_xr_media_cbs);
 
 	stream->staticimage_webcam_fps_optimization = TRUE;
 	stream->vconf_list = NULL;
@@ -1028,10 +1027,10 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 		switch (stream->ms.rc_algorithm) {
 			case MSQosAnalyzerAlgorithmSimple:
 				stream->ms.rc =
-				    ms_av_bitrate_controller_new(NULL, NULL, stream->ms.sessions.rtp_session, stream->ms.encoder);
+				    ms_av_bitrate_controller_new(NULL, NULL, stream->ms.sessions->rtp_session, stream->ms.encoder);
 				break;
 			case MSQosAnalyzerAlgorithmStateful:
-				stream->ms.rc = ms_bandwidth_bitrate_controller_new(NULL, NULL, stream->ms.sessions.rtp_session,
+				stream->ms.rc = ms_bandwidth_bitrate_controller_new(NULL, NULL, stream->ms.sessions->rtp_session,
 				                                                    stream->ms.encoder);
 				break;
 		}
@@ -1104,7 +1103,7 @@ static void video_stream_payload_type_changed(RtpSession *session,
 				ms_filter_call_method(stream->ms.decoder, MS_FILTER_ADD_FMTP, (void *)pt->recv_fmtp);
 			ms_filter_link(prevFilter, 0, stream->ms.decoder, 0);
 			ms_filter_link(stream->ms.decoder, 0, nextFilter, 0);
-			ms_filter_preprocess(stream->ms.decoder, stream->ms.sessions.ticker);
+			ms_filter_preprocess(stream->ms.decoder, stream->ms.sessions->ticker);
 
 			configure_decoder(stream, pt);
 		} else {
@@ -1135,7 +1134,7 @@ int video_stream_start(VideoStream *stream,
 	io.input.camera = cam;
 	io.output.type = MSResourceDefault;
 	io.output.resource_arg = NULL;
-	rtp_session_set_jitter_compensation(stream->ms.sessions.rtp_session, jitt_comp);
+	rtp_session_set_jitter_compensation(stream->ms.sessions->rtp_session, jitt_comp);
 	return video_stream_start_from_io(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload,
 	                                  &io);
 }
@@ -1351,7 +1350,7 @@ static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
 		vconf.required_bitrate = target_upload_bandwidth;
 		ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
 	}
-	rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, target_upload_bandwidth);
+	rtp_session_set_target_upload_bandwidth(stream->ms.sessions->rtp_session, target_upload_bandwidth);
 }
 
 static MSPixFmt mime_type_to_pix_format(const char *mime_type) {
@@ -1406,7 +1405,7 @@ static void csrc_event_cb(void *ud, BCTBX_UNUSED(MSFilter *f), unsigned int even
 			const int input = *((int *)eventdata);
 			if (input == 0) {
 				// 0 is the default rtp session of the stream
-				stream->new_csrc = rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session);
+				stream->new_csrc = rtp_session_get_recv_ssrc(stream->ms.sessions->rtp_session);
 			} else {
 				stream->new_csrc = rtp_session_get_recv_ssrc(stream->branches[input - 1].session);
 			}
@@ -1443,7 +1442,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
                                                      MSFilter *source,
                                                      MSFilter *output) {
 	PayloadType *pt;
-	RtpSession *rtps = stream->ms.sessions.rtp_session;
+	RtpSession *rtps = stream->ms.sessions->rtp_session;
 	MSPixFmt format;
 	MSVideoSize disp_size;
 	JBParameters jbp;
@@ -1486,19 +1485,19 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 	}
 
 	if (stream->ms.transfer_mode == FALSE) {
-		rtp_session_signal_connect(stream->ms.sessions.rtp_session, "payload_type_changed",
+		rtp_session_signal_connect(stream->ms.sessions->rtp_session, "payload_type_changed",
 		                           (RtpCallback)video_stream_payload_type_changed, &stream->ms);
 	}
 
-	rtp_session_get_jitter_buffer_params(stream->ms.sessions.rtp_session, &jbp);
+	rtp_session_get_jitter_buffer_params(stream->ms.sessions->rtp_session, &jbp);
 	jbp.max_packets = 1000; // needed for high resolution video
-	rtp_session_set_jitter_buffer_params(stream->ms.sessions.rtp_session, &jbp);
+	rtp_session_set_jitter_buffer_params(stream->ms.sessions->rtp_session, &jbp);
 
 	media_stream_create_or_update_fec_session(&stream->ms);
 
 	/* Plumb the outgoing stream */
 	if (rem_rtp_port > 0)
-		ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_SET_SESSION, stream->ms.sessions.rtp_session);
+		ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_SET_SESSION, stream->ms.sessions->rtp_session);
 	ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, &do_ts_adjustments);
 
 	if (stream->frame_marking_extension_id > 0) {
@@ -1516,7 +1515,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 		// session is removed too early.
 		rtp_session_signal_connect_from_source_session(rtp_bundle_get_primary_session(bundle),
 		                                               "new_incoming_ssrc_found_in_bundle", on_incoming_ssrc_in_bundle,
-		                                               stream, stream->ms.sessions.rtp_session);
+		                                               stream, stream->ms.sessions->rtp_session);
 	}
 
 	if (media_stream_get_direction(&stream->ms) == MediaStreamRecvOnly) {
@@ -1582,13 +1581,13 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 		}
 
 		if (stream->ms.transfer_mode == TRUE) {
-			rtp_session_set_mode(stream->ms.sessions.rtp_session, RTP_SESSION_RECVONLY);
+			rtp_session_set_mode(stream->ms.sessions->rtp_session, RTP_SESSION_RECVONLY);
 			if (bundle) {
 				// Use rtp_session_signal_connect_from_source_session so that the bundle can disconnect it if this
 				// session is removed too early.
 				rtp_session_signal_connect_from_source_session(
 				    rtp_bundle_get_primary_session(bundle), "new_outgoing_ssrc_found_in_bundle",
-				    media_stream_on_outgoing_ssrc_in_bundle, &stream->ms, stream->ms.sessions.rtp_session);
+				    media_stream_on_outgoing_ssrc_in_bundle, &stream->ms, stream->ms.sessions->rtp_session);
 			}
 		}
 
@@ -1702,7 +1701,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 		}
 
 		stream->ms.rtprecv = ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
-		ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, stream->ms.sessions.rtp_session);
+		ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, stream->ms.sessions->rtp_session);
 
 		if (stream->csrc_changed_cb) {
 			bool_t enable = TRUE;
@@ -1723,7 +1722,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 			}
 			ms_filter_add_notify_callback(stream->aggregator, aggregator_input_changed, stream, TRUE);
 
-			bctbx_list_t *elem = stream->ms.sessions.auxiliary_sessions;
+			bctbx_list_t *elem = stream->ms.sessions->auxiliary_sessions;
 			for (int i = 0; i < VIDEO_STREAM_MAX_BRANCHES; i++) {
 
 				stream->branches[i].recv = ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
@@ -1844,7 +1843,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 	}
 	if (media_stream_get_direction(&stream->ms) == MediaStreamSendOnly) {
 		stream->ms.rtprecv = ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
-		ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, stream->ms.sessions.rtp_session);
+		ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, stream->ms.sessions->rtp_session);
 		stream->ms.voidsink = ms_factory_create_filter(stream->ms.factory, MS_VOID_SINK_ID);
 		ms_filter_link(stream->ms.rtprecv, 0, stream->ms.voidsink, 0);
 	}
@@ -1859,7 +1858,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 	}
 
 	/* create the ticker */
-	if (stream->ms.sessions.ticker == NULL) media_stream_start_ticker(&stream->ms);
+	if (stream->ms.sessions->ticker == NULL) media_stream_start_ticker(&stream->ms);
 
 	stream->ms.start_time = ms_time(NULL);
 	stream->last_fps_check = (uint64_t)-1;
@@ -1868,12 +1867,12 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 
 	/* attach the graphs */
 	if (stream->source) {
-		ms_ticker_attach(stream->ms.sessions.ticker, stream->source);
+		ms_ticker_attach(stream->ms.sessions->ticker, stream->source);
 	}
 	if (stream->void_source) {
-		ms_ticker_attach(stream->ms.sessions.ticker, stream->void_source);
+		ms_ticker_attach(stream->ms.sessions->ticker, stream->void_source);
 	}
-	if (stream->ms.rtprecv) ms_ticker_attach(stream->ms.sessions.ticker, stream->ms.rtprecv);
+	if (stream->ms.rtprecv) ms_ticker_attach(stream->ms.sessions->ticker, stream->ms.rtprecv);
 
 	stream->ms.state = MSStreamStarted;
 	return 0;
@@ -1896,13 +1895,13 @@ int video_stream_start_with_source(VideoStream *stream,
 void video_stream_prepare_video(VideoStream *stream) {
 	video_stream_unprepare_video(stream);
 	stream->ms.rtprecv = ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
-	rtp_session_set_payload_type(stream->ms.sessions.rtp_session, 0);
-	rtp_session_enable_rtcp(stream->ms.sessions.rtp_session, FALSE);
-	ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, stream->ms.sessions.rtp_session);
+	rtp_session_set_payload_type(stream->ms.sessions->rtp_session, 0);
+	rtp_session_enable_rtcp(stream->ms.sessions->rtp_session, FALSE);
+	ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, stream->ms.sessions->rtp_session);
 	stream->ms.voidsink = ms_factory_create_filter(stream->ms.factory, MS_VOID_SINK_ID);
 	ms_filter_link(stream->ms.rtprecv, 0, stream->ms.voidsink, 0);
 	media_stream_start_ticker(&stream->ms);
-	ms_ticker_attach(stream->ms.sessions.ticker, stream->ms.rtprecv);
+	ms_ticker_attach(stream->ms.sessions->ticker, stream->ms.rtprecv);
 	stream->ms.state = MSStreamPreparing;
 }
 
@@ -1950,7 +1949,7 @@ static MSFilter *_video_stream_change_camera(VideoStream *stream,
 	bool_t use_player = (sink && !stream->player_active) || (!sink && stream->player_active && cam != NULL);
 	bool_t change_source = ((cam != NULL && cam != stream->cam) || new_src_different || use_player);
 	bool_t encoder_has_builtin_converter = (!stream->is_forwarding && !stream->pixconv && !stream->sizeconv);
-	/* We get the ticker from the source filter rather than stream->ms.sessions.ticker, for the case where the graph is
+	/* We get the ticker from the source filter rather than stream->ms.sessions->ticker, for the case where the graph is
 	 * actually running in a MSVideoConference that has its own ticker. */
 	MSTicker *current_ticker = stream->source ? ms_filter_get_ticker(stream->source) : NULL;
 
@@ -2029,14 +2028,14 @@ static MSFilter *_video_stream_change_camera(VideoStream *stream,
 			ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, &stream->device_orientation);
 		}
 
-		if (!skip_payload_config && stream->ms.sessions.rtp_session) {
+		if (!skip_payload_config && stream->ms.sessions->rtp_session) {
 			PayloadType *pt;
 			RtpProfile *profile;
 			int payload;
 
 			/* Apply bitrate limit to increase video size if the preferred one has changed. */
-			profile = rtp_session_get_profile(stream->ms.sessions.rtp_session);
-			payload = rtp_session_get_send_payload_type(stream->ms.sessions.rtp_session);
+			profile = rtp_session_get_profile(stream->ms.sessions->rtp_session);
+			payload = rtp_session_get_send_payload_type(stream->ms.sessions->rtp_session);
 			pt = rtp_profile_get_payload(profile, payload);
 			if (stream->source_performs_encoding == TRUE) {
 				MSPixFmt format = mime_type_to_pix_format(pt->mime_type);
@@ -2119,26 +2118,26 @@ void video_stream_forward_source_stream(VideoStream *stream, VideoStream *source
 }
 
 void video_stream_send_fir(VideoStream *stream) {
-	if (stream->ms.sessions.rtp_session != NULL) {
-		rtp_session_send_rtcp_fb_fir(stream->ms.sessions.rtp_session);
+	if (stream->ms.sessions->rtp_session != NULL) {
+		rtp_session_send_rtcp_fb_fir(stream->ms.sessions->rtp_session);
 	}
 }
 
 void video_stream_send_pli(VideoStream *stream) {
-	if (stream->ms.sessions.rtp_session != NULL) {
-		rtp_session_send_rtcp_fb_pli(stream->ms.sessions.rtp_session);
+	if (stream->ms.sessions->rtp_session != NULL) {
+		rtp_session_send_rtcp_fb_pli(stream->ms.sessions->rtp_session);
 	}
 }
 
 void video_stream_send_sli(VideoStream *stream, uint16_t first, uint16_t number, uint8_t picture_id) {
-	if (stream->ms.sessions.rtp_session != NULL) {
-		rtp_session_send_rtcp_fb_sli(stream->ms.sessions.rtp_session, first, number, picture_id);
+	if (stream->ms.sessions->rtp_session != NULL) {
+		rtp_session_send_rtcp_fb_sli(stream->ms.sessions->rtp_session, first, number, picture_id);
 	}
 }
 
 void video_stream_send_rpsi(VideoStream *stream, uint8_t *bit_string, uint16_t bit_string_len) {
-	if (stream->ms.sessions.rtp_session != NULL) {
-		rtp_session_send_rtcp_fb_rpsi(stream->ms.sessions.rtp_session, bit_string, bit_string_len);
+	if (stream->ms.sessions->rtp_session != NULL) {
+		rtp_session_send_rtcp_fb_rpsi(stream->ms.sessions->rtp_session, bit_string, bit_string_len);
 	}
 }
 
@@ -2152,13 +2151,13 @@ static MSFilter *_video_stream_stop(VideoStream *stream, bool_t keep_source) {
 
 	stream->eventcb = NULL;
 	stream->event_pointer = NULL;
-	if (stream->ms.sessions.ticker) {
+	if (stream->ms.sessions->ticker) {
 		if (stream->ms.state == MSStreamPreparing) {
 			stop_preload_graph(stream);
 		} else if (stream->ms.state == MSStreamStarted) {
-			if (stream->source) ms_ticker_detach(stream->ms.sessions.ticker, stream->source);
-			if (stream->void_source) ms_ticker_detach(stream->ms.sessions.ticker, stream->void_source);
-			if (stream->ms.rtprecv) ms_ticker_detach(stream->ms.sessions.ticker, stream->ms.rtprecv);
+			if (stream->source) ms_ticker_detach(stream->ms.sessions->ticker, stream->source);
+			if (stream->void_source) ms_ticker_detach(stream->ms.sessions->ticker, stream->void_source);
+			if (stream->ms.rtprecv) ms_ticker_detach(stream->ms.sessions->ticker, stream->ms.rtprecv);
 			ms_message("Stopping VideoStream");
 			media_stream_print_summary(&stream->ms);
 			if (stream->void_source) {
@@ -2230,9 +2229,9 @@ static MSFilter *_video_stream_stop(VideoStream *stream, bool_t keep_source) {
 			}
 		}
 	}
-	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, NULL);
+	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions->rtp_session, NULL);
 
-	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session, "payload_type_changed",
+	rtp_session_signal_disconnect_by_callback(stream->ms.sessions->rtp_session, "payload_type_changed",
 	                                          (RtpCallback)video_stream_payload_type_changed);
 
 	/*Automatically the video recorder if it was opened previously*/
@@ -2253,7 +2252,7 @@ static MSFilter *_video_stream_stop(VideoStream *stream, bool_t keep_source) {
 	evq = ms_factory_get_event_queue(stream->ms.factory);
 	if (evq) ms_event_queue_pump(evq);
 
-	if (stream->ms.sessions.rtp_session->fec_stream) {
+	if (stream->ms.sessions->rtp_session->fec_stream) {
 		media_stream_destroy_fec_stream(&stream->ms);
 	}
 
@@ -2394,7 +2393,7 @@ VideoPreview *video_preview_new(MSFactory *factory) {
 	stream->ms.factory = factory;
 	MS_VIDEO_SIZE_ASSIGN(stream->sent_vsize, CIF);
 	choose_display_name(stream);
-	stream->ms.owns_sessions = TRUE;
+	stream->ms.sessions = ms_media_stream_sessions_new();
 	return stream;
 }
 
@@ -2546,8 +2545,8 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 	/* create the ticker */
 	ticker_params.name = "Preview";
 	ticker_params.prio = __ms_get_default_prio(TRUE);
-	stream->ms.sessions.ticker = ms_ticker_new_with_params(&ticker_params);
-	ms_ticker_attach(stream->ms.sessions.ticker, stream->source);
+	stream->ms.sessions->ticker = ms_ticker_new_with_params(&ticker_params);
+	ms_ticker_attach(stream->ms.sessions->ticker, stream->source);
 	stream->ms.state = MSStreamStarted;
 }
 
@@ -2582,7 +2581,7 @@ bool_t video_preview_qrcode_enabled(BCTBX_UNUSED(VideoPreview *stream)) {
 static MSFilter *_video_preview_stop(VideoPreview *stream, bool_t keep_source) {
 	MSFilter *source = NULL;
 	MSConnectionHelper ch;
-	ms_ticker_detach(stream->ms.sessions.ticker, stream->source);
+	ms_ticker_detach(stream->ms.sessions->ticker, stream->source);
 
 	stream->eventcb = NULL;
 	stream->event_pointer = NULL;
@@ -2637,8 +2636,8 @@ _video_preview_change_camera(VideoPreview *stream, MSWebCam *cam, MSFilter *new_
 	bool_t change_source = (cam != stream->cam || new_src_different);
 	MSVideoSize disp_size = stream->sent_vsize;
 
-	if (stream->ms.sessions.ticker && stream->source) {
-		ms_ticker_detach(stream->ms.sessions.ticker, stream->source);
+	if (stream->ms.sessions->ticker && stream->source) {
+		ms_ticker_detach(stream->ms.sessions->ticker, stream->source);
 		/*unlink source filters and subsequent post processing filters */
 		ms_connection_helper_start(&ch);
 		ms_connection_helper_unlink(&ch, stream->source, -1, 0);
@@ -2707,7 +2706,7 @@ _video_preview_change_camera(VideoPreview *stream, MSWebCam *cam, MSFilter *new_
 			if (stream->output2) ms_filter_link(stream->pixconv, 0, stream->output2, 0);
 		}
 
-		ms_ticker_attach(stream->ms.sessions.ticker, stream->source);
+		ms_ticker_attach(stream->ms.sessions->ticker, stream->source);
 	}
 	return old_source;
 }
@@ -2749,18 +2748,18 @@ void video_stream_send_only_stop(VideoStream *vs) {
 
 /* enable ZRTP on the video stream using information from the audio stream */
 void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream) {
-	if (astream->ms.sessions.zrtp_context != NULL && vstream->ms.sessions.zrtp_context == NULL) {
-		vstream->ms.sessions.zrtp_context =
-		    ms_zrtp_multistream_new(&(vstream->ms.sessions), astream->ms.sessions.zrtp_context);
-	} else if (vstream->ms.sessions.zrtp_context && !media_stream_secured(&vstream->ms)) {
-		ms_zrtp_reset_transmition_timer(vstream->ms.sessions.zrtp_context);
+	if (astream->ms.sessions->zrtp_context != NULL && vstream->ms.sessions->zrtp_context == NULL) {
+		vstream->ms.sessions->zrtp_context =
+		    ms_zrtp_multistream_new(vstream->ms.sessions, astream->ms.sessions->zrtp_context);
+	} else if (vstream->ms.sessions->zrtp_context && !media_stream_secured(&vstream->ms)) {
+		ms_zrtp_reset_transmition_timer(vstream->ms.sessions->zrtp_context);
 	}
 }
 
 void video_stream_start_zrtp(VideoStream *stream) {
-	if (stream->ms.sessions.zrtp_context != NULL) {
-		if (ms_zrtp_channel_start(stream->ms.sessions.zrtp_context) == MSZRTP_ERROR_CHANNEL_ALREADY_STARTED) {
-			ms_zrtp_reset_transmition_timer(stream->ms.sessions.zrtp_context);
+	if (stream->ms.sessions->zrtp_context != NULL) {
+		if (ms_zrtp_channel_start(stream->ms.sessions->zrtp_context) == MSZRTP_ERROR_CHANNEL_ALREADY_STARTED) {
+			ms_zrtp_reset_transmition_timer(stream->ms.sessions->zrtp_context);
 		}
 	} else {
 		ms_warning("Trying to start a ZRTP channel on videotream, but none was enabled");
@@ -2772,14 +2771,14 @@ void video_stream_enable_display_filter_auto_rotate(VideoStream *stream, bool_t 
 }
 
 bool_t video_stream_is_decoding_error_to_be_reported(VideoStream *stream, uint32_t ms) {
-	if (((ms_ticker_get_time(stream->ms.sessions.ticker) - stream->last_reported_decoding_error_time) > ms) ||
+	if (((ms_ticker_get_time(stream->ms.sessions->ticker) - stream->last_reported_decoding_error_time) > ms) ||
 	    (stream->last_reported_decoding_error_time == 0))
 		return TRUE;
 	else return FALSE;
 }
 
 void video_stream_decoding_error_reported(VideoStream *stream) {
-	stream->last_reported_decoding_error_time = ms_ticker_get_time(stream->ms.sessions.ticker);
+	stream->last_reported_decoding_error_time = ms_ticker_get_time(stream->ms.sessions->ticker);
 }
 
 void video_stream_decoding_error_recovered(VideoStream *stream) {

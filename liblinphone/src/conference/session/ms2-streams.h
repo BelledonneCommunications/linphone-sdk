@@ -135,7 +135,7 @@ protected:
 	std::string mDtlsFingerPrint;
 	RtpProfile *mRtpProfile = nullptr;
 	RtpProfile *mRtpIoProfile = nullptr;
-	MSMediaStreamSessions mSessions;
+	MSMediaStreamSessions *mSessions = nullptr;
 	OrtpEvQueue *mOrtpEvQueue = nullptr;
 	std::shared_ptr<CallStats> mStats = nullptr;
 	int mOutputBandwidth = 0; // Target output bandwidth for the stream.
@@ -159,7 +159,7 @@ private:
 	void setupSrtp(const OfferAnswerContext &params);
 	void setupDtlsParams(MediaStream *ms);
 	void initDtlsParams(MediaStream *ms);
-	void stopZrtp(MediaStream *ms);
+	void stopZrtp();
 	void configureRtpSessionForRtcpFb(const OfferAnswerContext &params);
 	void configureRtpSessionForRtcpXr(const OfferAnswerContext &params);
 	void configureAdaptiveRateControl(const OfferAnswerContext &params);

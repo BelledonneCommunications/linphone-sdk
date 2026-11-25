@@ -77,10 +77,12 @@ static int tester_after_all(void) {
 }
 
 void iterate_stats_logger(MediaStream *ms, BCTBX_UNUSED(void *user_pointer)) {
-	ms_message("count=%u cum_loss=%ld late=%ld discarded=%lu", ms->sessions.rtp_session->rtp.jittctl.count,
-	           (unsigned long)rtp_session_get_stats(ms->sessions.rtp_session)->cum_packet_loss,
-	           (unsigned long)rtp_session_get_stats(ms->sessions.rtp_session)->outoftime,
-	           (unsigned long)rtp_session_get_stats(ms->sessions.rtp_session)->discarded);
+	ms_message(
+	    "count=%u cum_loss=%ld late=%ld discarded=%lu",
+	    ms_media_stream_sessions_get_rtp_session(ms->sessions)->rtp.jittctl.count,
+	    (unsigned long)rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(ms->sessions))->cum_packet_loss,
+	    (unsigned long)rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(ms->sessions))->outoftime,
+	    (unsigned long)rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(ms->sessions))->discarded);
 }
 
 void test_setup(int payload, OrtpJitterBufferAlgorithm algo) {
@@ -95,7 +97,7 @@ void test_setup(int payload, OrtpJitterBufferAlgorithm algo) {
 	    audio_stream_start_full(receiver, profile, 0, 0, 0, 0, payload, 50, NULL, RECORD_FILE, NULL, NULL, 0), 0, int,
 	    "%d");
 
-	rtp_session_get_jitter_buffer_params(receiver->ms.sessions.rtp_session, &params);
+	rtp_session_get_jitter_buffer_params(ms_media_stream_sessions_get_rtp_session(receiver->ms.sessions), &params);
 	params.buffer_algorithm = algo;
 	params.refresh_ms = 5000;
 	params.max_size = 1000;
@@ -105,13 +107,13 @@ void test_setup(int payload, OrtpJitterBufferAlgorithm algo) {
 	//			number of packets allowing in queue. Otherwise many packets will be
 	//			discarded by the queue.
 	params.max_packets = MAX(params.max_packets, 3 * params.max_size / 10);
-	rtp_session_set_jitter_buffer_params(receiver->ms.sessions.rtp_session, &params);
+	rtp_session_set_jitter_buffer_params(ms_media_stream_sessions_get_rtp_session(receiver->ms.sessions), &params);
 }
 
 void test_clean(const char *file, int clock_rate) {
-	struct rtp_stats *stats = &receiver->ms.sessions.rtp_session->stats;
+	struct rtp_stats *stats = &ms_media_stream_sessions_get_rtp_session(receiver->ms.sessions)->stats;
 	JBParameters params;
-	rtp_session_get_jitter_buffer_params(receiver->ms.sessions.rtp_session, &params);
+	rtp_session_get_jitter_buffer_params(ms_media_stream_sessions_get_rtp_session(receiver->ms.sessions), &params);
 
 	ms_message("file=%s, algo=%s, rate=%d, refresh_ms=%d, max_size_ms=%d\n"
 	           "bad=%ld, cum_loss=%ld, late=%lu, discarded=%lu",
@@ -161,7 +163,7 @@ rtp_stats_t final_audio_rtp_stats, final_video_rtp_stats;
 
 static OrtpEvQueue *setup_event_queue(MediaStream *ms) {
 	OrtpEvQueue *evq = ortp_ev_queue_new();
-	rtp_session_register_event_queue(ms->sessions.rtp_session, evq);
+	rtp_session_register_event_queue(ms_media_stream_sessions_get_rtp_session(ms->sessions), evq);
 	return evq;
 }
 
@@ -178,8 +180,10 @@ static void pcap_tester_streams_start(
 		receiver = audio_stream_new(_factory, audio_to_port, 0, FALSE);
 		test_setup(params->audio_payload, params->algo);
 
-		rtp_session_enable_avpf_feature(receiver->ms.sessions.rtp_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
-		rtp_session_enable_congestion_detection(receiver->ms.sessions.rtp_session, params->enable_congestion_detection);
+		rtp_session_enable_avpf_feature(ms_media_stream_sessions_get_rtp_session(receiver->ms.sessions),
+		                                ORTP_AVPF_FEATURE_TMMBR, TRUE);
+		rtp_session_enable_congestion_detection(ms_media_stream_sessions_get_rtp_session(receiver->ms.sessions),
+		                                        params->enable_congestion_detection);
 
 		receiver_q = setup_event_queue(&receiver->ms);
 	}
@@ -189,19 +193,22 @@ static void pcap_tester_streams_start(
 		receiverv = video_stream_new(_factory, video_to_port, 0, FALSE);
 		media_stream_set_direction(&receiverv->ms, MediaStreamRecvOnly);
 		// video_stream_set_display_filter_name(receiverv, "MSGLXVideo");
-		rtp_session_enable_avpf_feature(receiverv->ms.sessions.rtp_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
-		rtp_session_enable_congestion_detection(receiverv->ms.sessions.rtp_session,
+		rtp_session_enable_avpf_feature(ms_media_stream_sessions_get_rtp_session(receiverv->ms.sessions),
+		                                ORTP_AVPF_FEATURE_TMMBR, TRUE);
+		rtp_session_enable_congestion_detection(ms_media_stream_sessions_get_rtp_session(receiverv->ms.sessions),
 		                                        params->enable_congestion_detection);
 
 		BC_ASSERT_EQUAL(video_stream_start(receiverv, profile, 0, 0, 0, 0, params->video_payload, 50,
 		                                   mediastreamer2_tester_get_mire(_factory)),
 		                0, int, "%i");
-		rtp_session_get_jitter_buffer_params(receiverv->ms.sessions.rtp_session, &video_params);
+		rtp_session_get_jitter_buffer_params(ms_media_stream_sessions_get_rtp_session(receiverv->ms.sessions),
+		                                     &video_params);
 		video_params.buffer_algorithm = params->algo;
 		video_params.refresh_ms = 5000;
 		video_params.max_size = 1000;
 		video_params.min_size = 20;
-		rtp_session_set_jitter_buffer_params(receiverv->ms.sessions.rtp_session, &video_params);
+		rtp_session_set_jitter_buffer_params(ms_media_stream_sessions_get_rtp_session(receiverv->ms.sessions),
+		                                     &video_params);
 
 		receiverv_q = setup_event_queue(&receiverv->ms);
 #else
@@ -252,7 +259,7 @@ void pcap_tester_iterate_until(void) {
 }
 
 static void clean_evq(MediaStream *ms, OrtpEvQueue *evq) {
-	rtp_session_unregister_event_queue(ms->sessions.rtp_session, evq);
+	rtp_session_unregister_event_queue(ms_media_stream_sessions_get_rtp_session(ms->sessions), evq);
 	ortp_ev_queue_destroy(evq);
 }
 
@@ -263,7 +270,9 @@ void pcap_tester_stop(const PcapTesterContext *params) {
 	if (receiverv) {
 		clean_evq(&receiverv->ms, receiverv_q);
 		receiverv_q = NULL;
-		memcpy(&final_video_rtp_stats, rtp_session_get_stats(receiverv->ms.sessions.rtp_session), sizeof(rtp_stats_t));
+		memcpy(&final_video_rtp_stats,
+		       rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(receiverv->ms.sessions)),
+		       sizeof(rtp_stats_t));
 #ifdef VIDEO_ENABLED
 		video_stream_stop(receiverv);
 #endif
@@ -272,7 +281,9 @@ void pcap_tester_stop(const PcapTesterContext *params) {
 	if (receiver) {
 		clean_evq(&receiver->ms, receiver_q);
 		receiver_q = NULL;
-		memcpy(&final_audio_rtp_stats, rtp_session_get_stats(receiver->ms.sessions.rtp_session), sizeof(rtp_stats_t));
+		memcpy(&final_audio_rtp_stats,
+		       rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(receiver->ms.sessions)),
+		       sizeof(rtp_stats_t));
 		test_clean(params->file, params->audio_clock_rate);
 		receiver = NULL;
 	}
@@ -480,7 +491,7 @@ void congestion_adaptation(OrtpJitterBufferAlgorithm algo) {
 	sender = audio_stream_new(_factory, SENDER_RTP_PORT, 0, FALSE);
 	receiver = audio_stream_new(_factory, RECEIVER_RTP_PORT, 0, FALSE);
 
-	rtp_session_enable_congestion_detection(receiver->ms.sessions.rtp_session, TRUE);
+	rtp_session_enable_congestion_detection(ms_media_stream_sessions_get_rtp_session(receiver->ms.sessions), TRUE);
 	receiver_q = setup_event_queue(&receiver->ms);
 	test_setup(0, algo);
 
@@ -489,55 +500,77 @@ void congestion_adaptation(OrtpJitterBufferAlgorithm algo) {
 	                0, int, "%i");
 	ms_filter_call_method(sender->soundread, MS_FILE_PLAYER_LOOP, &pause_time);
 
-	// ms_ticker_set_tick_func(sender->ms.sessions.ticker, drifting_ticker, sender->ms.sessions.ticker);
-	// ms_ticker_set_tick_func(receiver->ms.sessions.ticker, drifting_ticker, receiver->ms.sessions.ticker);
+	// ms_ticker_set_tick_func(ms_media_stream_sessions_get_ticker(sender->ms.sessions), drifting_ticker,
+	// ms_media_stream_sessions_get_ticker(sender->ms.sessions));
+	// ms_ticker_set_tick_func(ms_media_stream_sessions_get_ticker(receiver->ms.sessions), drifting_ticker,
+	// ms_media_stream_sessions_get_ticker(receiver->ms.sessions));
 
 	media_stream_iterate(&sender->ms);
 
-	init_time = receiver->ms.sessions.ticker->get_cur_time_ptr(sender->ms.sessions.ticker);
-	while (receiver->ms.sessions.ticker->get_cur_time_ptr(receiver->ms.sessions.ticker) - init_time < 12000) {
+	init_time = ms_media_stream_sessions_get_ticker(receiver->ms.sessions)
+	                ->get_cur_time_ptr(ms_media_stream_sessions_get_ticker(sender->ms.sessions));
+	while (ms_media_stream_sessions_get_ticker(receiver->ms.sessions)
+	               ->get_cur_time_ptr(ms_media_stream_sessions_get_ticker(receiver->ms.sessions)) -
+	           init_time <
+	       12000) {
 		media_stream_iterate(&sender->ms);
 		media_stream_iterate(&receiver->ms);
 		process_queue(receiver_q);
-		// iterate_stats_logger(&receiver->ms, &sender->ms.sessions.rtp_session->cum_loss);
+		// iterate_stats_logger(&receiver->ms,
+		// &ms_media_stream_sessions_get_rtp_session(sender->ms.sessions)->cum_loss);
 	}
 	BC_ASSERT_EQUAL(congestion_count, 0, int, "%d");
 
 	ms_message("Applying limitation");
 	netsim.max_bandwidth = 40000;
-	rtp_session_enable_network_simulation(receiver->ms.sessions.rtp_session, &netsim);
+	rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(receiver->ms.sessions), &netsim);
 	// wait_for_until_with_parse_events(&receiver->ms,&sender->ms,
-	// &netsim.enabled,1e7,30000,iterate_stats_logger,&sender->ms.sessions.rtp_session->cum_loss,NULL,NULL);
-	init_time = receiver->ms.sessions.ticker->get_cur_time_ptr(receiver->ms.sessions.ticker);
-	while (receiver->ms.sessions.ticker->get_cur_time_ptr(receiver->ms.sessions.ticker) - init_time < 30000) {
+	// &netsim.enabled,1e7,30000,iterate_stats_logger,&ms_media_stream_sessions_get_rtp_session(sender->ms.sessions)->cum_loss,NULL,NULL);
+	init_time = ms_media_stream_sessions_get_ticker(receiver->ms.sessions)
+	                ->get_cur_time_ptr(ms_media_stream_sessions_get_ticker(receiver->ms.sessions));
+	while (ms_media_stream_sessions_get_ticker(receiver->ms.sessions)
+	               ->get_cur_time_ptr(ms_media_stream_sessions_get_ticker(receiver->ms.sessions)) -
+	           init_time <
+	       30000) {
 		media_stream_iterate(&sender->ms);
 		media_stream_iterate(&receiver->ms);
 		process_queue(receiver_q);
-		// iterate_stats_logger(&receiver->ms, &sender->ms.sessions.rtp_session->cum_loss);
+		// iterate_stats_logger(&receiver->ms,
+		// &ms_media_stream_sessions_get_rtp_session(sender->ms.sessions)->cum_loss);
 	}
 	BC_ASSERT_EQUAL(congestion_count, 1, int, "%d");
 
 	ms_message("Removing limitation");
 	netsim.max_bandwidth = 1000000;
-	rtp_session_enable_network_simulation(receiver->ms.sessions.rtp_session, &netsim);
+	rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(receiver->ms.sessions), &netsim);
 	// wait_for_until_with_parse_events(&receiver->ms,&sender->ms,
-	// &netsim.enabled,1e7,30000,iterate_stats_logger,&sender->ms.sessions.rtp_session->cum_loss,NULL,NULL);
-	init_time = receiver->ms.sessions.ticker->get_cur_time_ptr(receiver->ms.sessions.ticker);
-	while (receiver->ms.sessions.ticker->get_cur_time_ptr(receiver->ms.sessions.ticker) - init_time < 30000) {
+	// &netsim.enabled,1e7,30000,iterate_stats_logger,&ms_media_stream_sessions_get_rtp_session(sender->ms.sessions)->cum_loss,NULL,NULL);
+	init_time = ms_media_stream_sessions_get_ticker(receiver->ms.sessions)
+	                ->get_cur_time_ptr(ms_media_stream_sessions_get_ticker(receiver->ms.sessions));
+	while (ms_media_stream_sessions_get_ticker(receiver->ms.sessions)
+	               ->get_cur_time_ptr(ms_media_stream_sessions_get_ticker(receiver->ms.sessions)) -
+	           init_time <
+	       30000) {
 		media_stream_iterate(&sender->ms);
 		media_stream_iterate(&receiver->ms);
 		process_queue(receiver_q);
-		// iterate_stats_logger(&receiver->ms, &sender->ms.sessions.rtp_session->cum_loss);
+		// iterate_stats_logger(&receiver->ms,
+		// &ms_media_stream_sessions_get_rtp_session(sender->ms.sessions)->cum_loss);
 	}
 
 	audio_stream_stop(sender);
 	// wait_for_until_with_parse_events(&receiver->ms,NULL, &netsim.enabled, 180,
 	// 2000,iterate_stats_logger,NULL,NULL,NULL);
-	init_time = receiver->ms.sessions.ticker->get_cur_time_ptr(receiver->ms.sessions.ticker);
-	while (receiver->ms.sessions.ticker->get_cur_time_ptr(receiver->ms.sessions.ticker) - init_time < 2000) {
+	init_time = ms_media_stream_sessions_get_ticker(receiver->ms.sessions)
+	                ->get_cur_time_ptr(ms_media_stream_sessions_get_ticker(receiver->ms.sessions));
+	while (ms_media_stream_sessions_get_ticker(receiver->ms.sessions)
+	               ->get_cur_time_ptr(ms_media_stream_sessions_get_ticker(receiver->ms.sessions)) -
+	           init_time <
+	       2000) {
 		media_stream_iterate(&receiver->ms);
 		process_queue(receiver_q);
-		// iterate_stats_logger(&receiver->ms, &sender->ms.sessions.rtp_session->cum_loss);
+		// iterate_stats_logger(&receiver->ms,
+		// &ms_media_stream_sessions_get_rtp_session(sender->ms.sessions)->cum_loss);
 	}
 
 	BC_ASSERT_EQUAL(congestion_count, 1, int, "%d");

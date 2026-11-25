@@ -5275,10 +5275,10 @@ bool_t call_with_params2(LinphoneCoreManager *caller_mgr,
 #ifdef VIDEO_ENABLED
 			VideoStream *vstream = (VideoStream *)linphone_call_get_stream(call, LinphoneStreamTypeVideo);
 #endif
-			if (astream) BC_ASSERT_TRUE(ms_media_stream_sessions_get_encryption_mandatory(&astream->ms.sessions));
+			if (astream) BC_ASSERT_TRUE(ms_media_stream_sessions_get_encryption_mandatory(astream->ms.sessions));
 #ifdef VIDEO_ENABLED
 			if (vstream && video_stream_started(vstream))
-				BC_ASSERT_TRUE(ms_media_stream_sessions_get_encryption_mandatory(&vstream->ms.sessions));
+				BC_ASSERT_TRUE(ms_media_stream_sessions_get_encryption_mandatory(vstream->ms.sessions));
 #endif
 		}
 	}

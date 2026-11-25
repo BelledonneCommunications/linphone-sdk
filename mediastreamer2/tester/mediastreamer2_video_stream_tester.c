@@ -418,12 +418,12 @@ static void event_queue_cb(BCTBX_UNUSED(MediaStream *ms), void *user_pointer) {
 static void create_video_stream(video_stream_tester_t *vst, int payload_type) {
 	vst->vs = video_stream_new2(_factory, vst->local_ip, vst->local_rtp, vst->local_rtcp);
 	vst->vs->staticimage_webcam_fps_optimization = FALSE;
-	vst->local_rtp = rtp_session_get_local_port(vst->vs->ms.sessions.rtp_session);
-	vst->local_rtcp = rtp_session_get_local_rtcp_port(vst->vs->ms.sessions.rtp_session);
+	vst->local_rtp = rtp_session_get_local_port(ms_media_stream_sessions_get_rtp_session(vst->vs->ms.sessions));
+	vst->local_rtcp = rtp_session_get_local_rtcp_port(ms_media_stream_sessions_get_rtp_session(vst->vs->ms.sessions));
 	reset_stats(&vst->stats);
-	rtp_session_set_multicast_loopback(vst->vs->ms.sessions.rtp_session, TRUE);
+	rtp_session_set_multicast_loopback(ms_media_stream_sessions_get_rtp_session(vst->vs->ms.sessions), TRUE);
 	vst->stats.q = ortp_ev_queue_new();
-	rtp_session_register_event_queue(vst->vs->ms.sessions.rtp_session, vst->stats.q);
+	rtp_session_register_event_queue(ms_media_stream_sessions_get_rtp_session(vst->vs->ms.sessions), vst->stats.q);
 	video_stream_set_event_callback(vst->vs, video_stream_event_cb, vst);
 	video_stream_set_display_callback(vst->vs, video_stream_display_cb, vst);
 	if (vst->vconf) {
@@ -445,8 +445,8 @@ static void destroy_video_stream(video_stream_tester_t *vst) {
 static void video_stream_tester_bundle_fec(video_stream_tester_t *vst) {
 	MediaStream *ms = &vst->vs->ms;
 	vst->bundle = rtp_bundle_new();
-	rtp_bundle_add_session(vst->bundle, "video_fec", ms->sessions.rtp_session);
-	rtp_bundle_set_primary_session(vst->bundle, ms->sessions.rtp_session);
+	rtp_bundle_add_session(vst->bundle, "video_fec", ms_media_stream_sessions_get_rtp_session(ms->sessions));
+	rtp_bundle_set_primary_session(vst->bundle, ms_media_stream_sessions_get_rtp_session(ms->sessions));
 }
 static void
 init_video_streams(video_stream_tester_t *vst1, video_stream_tester_t *vst2, video_stream_tester_params_t params) {
@@ -466,8 +466,10 @@ init_video_streams(video_stream_tester_t *vst1, video_stream_tester_t *vst2, vid
 	}
 	/* Configure network simulator. */
 	if ((params.network_params != NULL) && (params.network_params->enabled == TRUE)) {
-		rtp_session_enable_network_simulation(vst1->vs->ms.sessions.rtp_session, params.network_params);
-		rtp_session_enable_network_simulation(vst2->vs->ms.sessions.rtp_session, params.network_params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(vst1->vs->ms.sessions),
+		                                      params.network_params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(vst2->vs->ms.sessions),
+		                                      params.network_params);
 	}
 
 	if (params.one_way == TRUE) {
@@ -511,12 +513,14 @@ static void uninit_video_streams(video_stream_tester_t *vst1, video_stream_teste
 	vst2_pt = rtp_profile_get_payload(&rtp_profile, vst2->payload_type);
 	if (!BC_ASSERT_PTR_NOT_NULL(vst1_pt) || !BC_ASSERT_PTR_NOT_NULL(vst2_pt)) return;
 
-	rtcp_send_bandwidth = rtp_session_get_rtcp_send_bandwidth(vst1->vs->ms.sessions.rtp_session);
+	rtcp_send_bandwidth =
+	    rtp_session_get_rtcp_send_bandwidth(ms_media_stream_sessions_get_rtp_session(vst1->vs->ms.sessions));
 	ms_message("vst1: rtcp_send_bandwidth=%f, payload_type_bitrate=%d, rtcp_target_bandwidth=%f", rtcp_send_bandwidth,
 	           payload_type_get_bitrate(vst1_pt), rtcp_bitrate_part * payload_type_get_bitrate(vst1_pt));
 	BC_ASSERT_TRUE(rtcp_send_bandwidth <= (rtcp_bitrate_part * payload_type_get_bitrate(vst1_pt)));
 	BC_ASSERT_LOWER(rtcp_send_bandwidth, (rtcp_bitrate_part * payload_type_get_bitrate(vst1_pt)), float, "%f");
-	rtcp_send_bandwidth = rtp_session_get_rtcp_send_bandwidth(vst2->vs->ms.sessions.rtp_session);
+	rtcp_send_bandwidth =
+	    rtp_session_get_rtcp_send_bandwidth(ms_media_stream_sessions_get_rtp_session(vst2->vs->ms.sessions));
 	ms_message("vst2: rtcp_send_bandwidth=%f, payload_type_bitrate=%d, rtcp_target_bandwidth=%f", rtcp_send_bandwidth,
 	           payload_type_get_bitrate(vst2_pt), rtcp_bitrate_part * payload_type_get_bitrate(vst2_pt));
 	BC_ASSERT_LOWER(rtcp_send_bandwidth, (rtcp_bitrate_part * payload_type_get_bitrate(vst2_pt)), float, "%f");
@@ -713,7 +717,8 @@ static void multicast_video_stream(void) {
 		                                                &margaux->stats.number_of_SR, 2, 15000, event_queue_cb,
 		                                                &marielle->stats, event_queue_cb, &margaux->stats));
 
-		ms_ticker_detach(margaux->vs->ms.sessions.ticker, margaux->vs->source); /*to stop sending*/
+		ms_ticker_detach(ms_media_stream_sessions_get_ticker(margaux->vs->ms.sessions),
+		                 margaux->vs->source); /*to stop sending*/
 		/*make sure packets can cross from sender to receiver*/
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1500);
 
@@ -769,8 +774,10 @@ static void avpf_video_stream_base(int payload_type) {
 
 		// disable network simulator
 		params.enabled = FALSE;
-		rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
-		rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(marielle->vs->ms.sessions),
+		                                      &params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(margaux->vs->ms.sessions),
+		                                      &params);
 
 		wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1500, event_queue_cb,
 		                                 &marielle->stats, event_queue_cb, &margaux->stats);
@@ -910,8 +917,10 @@ static void video_stream_first_iframe_lost_base(int payload_type) {
 		/* Use 10% packet lost to be sure to have decoding errors. */
 		params.enabled = TRUE;
 		params.loss_rate = 10.;
-		rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
-		rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(marielle->vs->ms.sessions),
+		                                      &params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(margaux->vs->ms.sessions),
+		                                      &params);
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 2000);
 
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(
@@ -924,8 +933,10 @@ static void video_stream_first_iframe_lost_base(int payload_type) {
 		/* Remove the lost to be sure the forced iframe is going through. */
 		params.enabled = TRUE;
 		params.loss_rate = 0.;
-		rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
-		rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(marielle->vs->ms.sessions),
+		                                      &params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(margaux->vs->ms.sessions),
+		                                      &params);
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 2000);
 		video_stream_send_vfu(marielle->vs);
 		video_stream_send_vfu(margaux->vs);
@@ -984,8 +995,10 @@ static void avpf_video_stream_first_iframe_lost_base(int payload_type) {
 		/* Remove the lost to be sure that a PLI will be sent and not a SLI. */
 		params.enabled = TRUE;
 		params.loss_rate = 0.;
-		rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
-		rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(marielle->vs->ms.sessions),
+		                                      &params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(margaux->vs->ms.sessions),
+		                                      &params);
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 2000);
 
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
@@ -1252,7 +1265,8 @@ static void video_stream_normal_loss_with_retransmission_on_nack(void) {
 		params.loss_rate = 3.;
 		init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(TRUE, FALSE, &params, VP8_PAYLOAD_TYPE, TRUE));
 
-		rtp_session_get_jitter_buffer_params(margaux->vs->ms.sessions.rtp_session, &initial_jitter_params);
+		rtp_session_get_jitter_buffer_params(ms_media_stream_sessions_get_rtp_session(margaux->vs->ms.sessions),
+		                                     &initial_jitter_params);
 
 		wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 10000, event_queue_cb,
 		                                 &marielle->stats, event_queue_cb, &margaux->stats);
@@ -1262,18 +1276,22 @@ static void video_stream_normal_loss_with_retransmission_on_nack(void) {
 		BC_ASSERT_GREATER(marielle->stats.number_of_sent_SLI - margaux->stats.number_of_sent_SLI, 5, int, "%d");
 
 		/* Since there is some loss_rate the nack context should increase the min_size */
-		rtp_session_get_jitter_buffer_params(margaux->vs->ms.sessions.rtp_session, &current_jitter_params);
+		rtp_session_get_jitter_buffer_params(ms_media_stream_sessions_get_rtp_session(margaux->vs->ms.sessions),
+		                                     &current_jitter_params);
 		BC_ASSERT_GREATER(current_jitter_params.min_size, initial_jitter_params.min_size, int, "%d");
 
 		params.loss_rate = 0.;
-		rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
-		rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(marielle->vs->ms.sessions),
+		                                      &params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(margaux->vs->ms.sessions),
+		                                      &params);
 
 		wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 6000, event_queue_cb,
 		                                 &marielle->stats, event_queue_cb, &margaux->stats);
 
 		/* Since no NACK is sent in the last 5 seconds, the jitter min size is set back to default */
-		rtp_session_get_jitter_buffer_params(margaux->vs->ms.sessions.rtp_session, &current_jitter_params);
+		rtp_session_get_jitter_buffer_params(ms_media_stream_sessions_get_rtp_session(margaux->vs->ms.sessions),
+		                                     &current_jitter_params);
 		BC_ASSERT_EQUAL(current_jitter_params.min_size, initial_jitter_params.min_size, int, "%d");
 
 		uninit_video_streams(marielle, margaux);
@@ -1317,7 +1335,7 @@ static void video_stream_with_itcsink(void) {
 		io.input.itc = marielle->vs->itcsink;
 		io.output.type = MSResourceDefault;
 		io.output.resource_arg = NULL;
-		rtp_session_set_jitter_compensation(margaux->vs->ms.sessions.rtp_session, 50);
+		rtp_session_set_jitter_compensation(ms_media_stream_sessions_get_rtp_session(margaux->vs->ms.sessions), 50);
 		video_stream_start_from_io(margaux->vs, &rtp_profile, pauline->local_ip, pauline->local_rtp, pauline->local_ip,
 		                           pauline->local_rtcp, VP8_PAYLOAD_TYPE, &io);
 
@@ -1369,10 +1387,10 @@ static void init_fec_videostreams(int payload_type) {
 	wait_for_until_for_uint64(&marielle->vs->ms, &margaux->vs->ms, &fec_stats1->packets_recovered, 20, 18000);
 
 	/* get stats to check that the number of source and repair packets sent and received are consistent */
-	fec_session_stats1 = rtp_session_get_stats(marielle->vs->ms.sessions.fec_session);
-	fec_session_stats2 = rtp_session_get_stats(margaux->vs->ms.sessions.fec_session);
-	rtp_session_stats1 = rtp_session_get_stats(marielle->vs->ms.sessions.rtp_session);
-	rtp_session_stats2 = rtp_session_get_stats(margaux->vs->ms.sessions.rtp_session);
+	fec_session_stats1 = rtp_session_get_stats(ms_media_stream_sessions_get_fec_session(marielle->vs->ms.sessions));
+	fec_session_stats2 = rtp_session_get_stats(ms_media_stream_sessions_get_fec_session(margaux->vs->ms.sessions));
+	rtp_session_stats1 = rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(marielle->vs->ms.sessions));
+	rtp_session_stats2 = rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(margaux->vs->ms.sessions));
 
 	/* repair packets: consistency between packets counted in fec stream and packets counted in fec session */
 	BC_ASSERT_TRUE(fec_stats1->packets_recovered > 0);

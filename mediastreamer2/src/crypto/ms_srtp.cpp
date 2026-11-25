@@ -33,6 +33,7 @@
 #endif
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/ms_srtp.h"
+#include "private.h"
 
 #ifdef HAVE_SRTP
 
@@ -173,7 +174,7 @@ public:
 	                   key */
 	std::map<uint32_t, std::shared_ptr<EktTagCipherText>>
 	    tagCache; /**< maps of ROC and current cipher text in use indexed by SSRC - as a session can bundle several SSRC
-		           */
+	               **/
 	std::map<uint32_t, uint64_t> mTimeStamp; /**< a map of the last timestamp - computed locally in ms not the one from
 	                                            packet header when a full EKT tag is inserted, indexed by SSRC **/
 	uint64_t mFullTagPeriod; /**< how many ms can pass between two sending of full EKT tag - default to 100 ms as

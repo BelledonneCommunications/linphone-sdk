@@ -489,8 +489,9 @@ int MSDtlsSrtpContext::initialiseDtlsCryptoContext(MSDtlsSrtpParams *params) {
 	/* configure ssl */
 	if (params->role == MSDtlsSrtpRoleIsClient) {
 		bctbx_ssl_config_defaults(mDtlsCryptoContext.ssl_config, BCTBX_SSL_IS_CLIENT, BCTBX_SSL_TRANSPORT_DATAGRAM);
-	} else { /* configure it by default as server, nothing is actually performed until we start the channel but this
-	            helps to get correct defaults settings */
+	} else {
+		/* configure it by default as server, nothing is actually performed until we start the channel but this
+		   helps to get correct defaults settings */
 		bctbx_ssl_config_defaults(mDtlsCryptoContext.ssl_config, BCTBX_SSL_IS_SERVER, BCTBX_SSL_TRANSPORT_DATAGRAM);
 	}
 
@@ -801,15 +802,6 @@ bool MSDtlsSrtpContext::isPeerCerticateMatchHisUri() {
 /***********************************************/
 /***** EXPORTED FUNCTIONS                  *****/
 /***********************************************/
-/**** Private to mediastreamer2 functions ****/
-/* header declared in voip/private.h */
-extern "C" void ms_dtls_srtp_set_stream_sessions(MSDtlsSrtpContext *dtls_context,
-                                                 MSMediaStreamSessions *stream_sessions) {
-	if (dtls_context != NULL) {
-		dtls_context->mStreamSessions = stream_sessions;
-	}
-}
-
 /**** Public functions ****/
 /* header declared in include/mediastreamer2/dtls_srtp.h */
 extern "C" bool_t ms_dtls_srtp_available() {
@@ -863,7 +855,7 @@ extern "C" MSDtlsSrtpContext *ms_dtls_srtp_context_new(MSMediaStreamSessions *se
 	ms_message("Creating DTLS-SRTP engine on stream sessions [%p] as %s, RTCP mux is %s", sessions,
 	           params->role == MSDtlsSrtpRoleIsServer
 	               ? "server"
-				   : (params->role == MSDtlsSrtpRoleIsClient ? "client" : "unset role"),
+	               : (params->role == MSDtlsSrtpRoleIsClient ? "client" : "unset role"),
 	           rtp_session_rtcp_mux_enabled(sessions->rtp_session) ? "enabled" : "disabled");
 
 	/* create context and link it to the rtp session */

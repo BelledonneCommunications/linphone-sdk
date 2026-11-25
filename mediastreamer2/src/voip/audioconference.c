@@ -120,8 +120,8 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote) {
 	AudioStream *st = ep->st;
 
 	/*stop the audio graph*/
-	ms_ticker_detach(st->ms.sessions.ticker, st->soundread);
-	if (!st->ec) ms_ticker_detach(st->ms.sessions.ticker, st->soundwrite);
+	ms_ticker_detach(st->ms.sessions->ticker, st->soundread);
+	if (!st->ec) ms_ticker_detach(st->ms.sessions->ticker, st->soundwrite);
 
 	ep->in_cut_point_prev.pin = 0;
 	if (ep->conf_mode == MSConferenceModeMixer) {
@@ -164,7 +164,7 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote) {
 		bool_t enable = TRUE;
 		ms_filter_call_method(st->ms.rtpsend, MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, &enable);
 		ms_filter_call_method(st->ms.rtprecv, MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, &enable);
-		rtp_session_enable_transfer_mode(st->ms.sessions.rtp_session, TRUE);
+		rtp_session_enable_transfer_mode(st->ms.sessions->rtp_session, TRUE);
 	}
 
 	if (is_remote) {
@@ -187,7 +187,7 @@ static void redo_audio_stream_graph(MSAudioEndpoint *ep) {
 		bool_t enable = FALSE;
 		ms_filter_call_method(st->ms.rtpsend, MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, &enable);
 		ms_filter_call_method(st->ms.rtprecv, MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, &enable);
-		rtp_session_enable_transfer_mode(st->ms.sessions.rtp_session, FALSE);
+		rtp_session_enable_transfer_mode(st->ms.sessions->rtp_session, FALSE);
 	}
 
 	if (st->ms.rtpsend) {
@@ -201,8 +201,8 @@ static void redo_audio_stream_graph(MSAudioEndpoint *ep) {
 	               ep->in_cut_point.pin);
 	ms_filter_link(ep->out_cut_point.filter, ep->out_cut_point.pin, ep->out_cut_point_next.filter,
 	               ep->out_cut_point_next.pin);
-	ms_ticker_attach(st->ms.sessions.ticker, st->soundread);
-	if (!st->ec) ms_ticker_attach(st->ms.sessions.ticker, st->soundwrite);
+	ms_ticker_attach(st->ms.sessions->ticker, st->soundread);
+	if (!st->ec) ms_ticker_attach(st->ms.sessions->ticker, st->soundwrite);
 }
 
 static int find_free_pin(MSFilter *mixer) {
@@ -290,7 +290,7 @@ static int request_volumes(BCTBX_UNUSED(MSFilter *filter), rtp_audio_level_t **a
 					if (db != 0) ms_filter_call_method(data->st->volsend, MS_VOLUME_GET, &db);
 					else db = MS_VOLUME_DB_MUTED;
 
-					audio_stream_volumes_insert(volumes, rtp_session_get_send_ssrc(data->st->ms.sessions.rtp_session),
+					audio_stream_volumes_insert(volumes, rtp_session_get_send_ssrc(data->st->ms.sessions->rtp_session),
 					                            (int)db);
 					volumes_size++;
 				}
@@ -334,9 +334,9 @@ static void unconfigure_output(MSAudioEndpoint *ep) {
  * Inform the MSRtpSend and MSRtpRecv filters, because they use the MSTicker's time information to calculate timestamps.
  */
 static void compensate_ticker_offset(MSAudioConference *obj, MSAudioEndpoint *ep) {
-	if (ep->is_remote && ep->st->ms.sessions.rtp_session && ep->st->ms.sessions.ticker) {
+	if (ep->is_remote && ep->st->ms.sessions->rtp_session && ep->st->ms.sessions->ticker) {
 		int64_t ticker_offset =
-		    (int64_t)ms_ticker_get_time(obj->ticker) - (int64_t)ms_ticker_get_time(ep->st->ms.sessions.ticker);
+		    (int64_t)ms_ticker_get_time(obj->ticker) - (int64_t)ms_ticker_get_time(ep->st->ms.sessions->ticker);
 		if (ep->st->ms.rtpsend) {
 			ms_filter_call_method(ep->st->ms.rtpsend, MS_RTP_SEND_SET_TICKER_OFFSET, &ticker_offset);
 		}
@@ -427,8 +427,8 @@ int ms_audio_conference_get_participant_volume(MSAudioConference *obj, uint32_t 
 		MSAudioEndpoint *data = (MSAudioEndpoint *)it->data;
 		int is_remote = (data->in_cut_point_prev.filter == data->st->volrecv);
 		MSFilter *volume_filter = is_remote ? data->st->volrecv : data->st->volsend;
-		uint32_t member_ssrc = is_remote ? rtp_session_get_recv_ssrc(data->st->ms.sessions.rtp_session)
-		                                 : rtp_session_get_send_ssrc(data->st->ms.sessions.rtp_session);
+		uint32_t member_ssrc = is_remote ? rtp_session_get_recv_ssrc(data->st->ms.sessions->rtp_session)
+		                                 : rtp_session_get_send_ssrc(data->st->ms.sessions->rtp_session);
 
 		if (member_ssrc != ssrc) continue;
 		if (data->muted) return MS_VOLUME_DB_LOWEST;
@@ -478,8 +478,8 @@ void ms_audio_conference_process_events(MSAudioConference *obj) {
 					if (max_db > audio_threshold_min_db && max_db > max_db_over_member) {
 						max_db_over_member = max_db;
 						winner = ep;
-						winner_ssrc = is_remote ? rtp_session_get_recv_ssrc(ep->st->ms.sessions.rtp_session)
-						                        : rtp_session_get_send_ssrc(ep->st->ms.sessions.rtp_session);
+						winner_ssrc = is_remote ? rtp_session_get_recv_ssrc(ep->st->ms.sessions->rtp_session)
+						                        : rtp_session_get_send_ssrc(ep->st->ms.sessions->rtp_session);
 					}
 				}
 			}
@@ -504,7 +504,7 @@ void ms_audio_conference_process_events(MSAudioConference *obj) {
 			// otherwise it will be set as part of the mixer-to-client extension.
 			if (ep->st == NULL || ep->st->mixer_to_client_extension_id > 0) continue;
 
-			RtpSession *session = ep->st->ms.sessions.rtp_session;
+			RtpSession *session = ep->st->ms.sessions->rtp_session;
 			if (session == NULL) continue;
 
 			rtp_session_clear_contributing_sources(session);

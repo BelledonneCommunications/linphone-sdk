@@ -895,7 +895,7 @@ void setup_media_streams(MediastreamDatas *args) {
 				audio_stream_enable_zrtp(args->audio, &params);
 			}
 
-			args->session = args->audio->ms.sessions.rtp_session;
+			args->session = ms_media_stream_sessions_get_rtp_session(args->audio->ms.sessions);
 		}
 
 		if (args->enable_srtp) {
@@ -965,10 +965,11 @@ void setup_media_streams(MediastreamDatas *args) {
 			iodef.output.type = MSResourceDefault;
 			iodef.output.resource_arg = NULL;
 		}
-		rtp_session_set_jitter_compensation(args->video->ms.sessions.rtp_session, args->jitter);
+		rtp_session_set_jitter_compensation(ms_media_stream_sessions_get_rtp_session(args->video->ms.sessions),
+		                                    args->jitter);
 		video_stream_start_from_io(args->video, args->profile, args->ip, args->remoteport, args->ip,
 		                           args->enable_rtcp ? args->remoteport + 1 : -1, args->payload, &iodef);
-		args->session = args->video->ms.sessions.rtp_session;
+		args->session = ms_media_stream_sessions_get_rtp_session(args->video->ms.sessions);
 
 		ms_filter_call_method(args->video->output, MS_VIDEO_DISPLAY_ZOOM, zoom);
 
@@ -986,7 +987,8 @@ void setup_media_streams(MediastreamDatas *args) {
 		if (args->enable_zrtp) {
 
 			MSZrtpParams params = {0};
-			args->video->ms.sessions.zrtp_context = ms_zrtp_context_new(&(args->video->ms.sessions), &params);
+			ms_media_stream_sessions_set_zrtp_context(args->video->ms.sessions,
+			                                          ms_zrtp_context_new(args->video->ms.sessions, &params));
 			video_stream_start_zrtp(args->video);
 		}
 
@@ -1117,11 +1119,11 @@ void mediastream_run_loop(MediastreamDatas *args) {
 			           rtp_session_get_send_bandwidth(args->session) * 1e-3);
 
 			if (args->audio) {
-				audio_load = ms_ticker_get_average_load(args->audio->ms.sessions.ticker);
+				audio_load = ms_ticker_get_average_load(ms_media_stream_sessions_get_ticker(args->audio->ms.sessions));
 			}
 #if defined(VIDEO_ENABLED)
 			if (args->video) {
-				video_load = ms_ticker_get_average_load(args->video->ms.sessions.ticker);
+				video_load = ms_ticker_get_average_load(ms_media_stream_sessions_get_ticker(args->video->ms.sessions));
 			}
 #endif
 			ms_message("Thread processing load: audio=%f\tvideo=%f", audio_load, video_load);

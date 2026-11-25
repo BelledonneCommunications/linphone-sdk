@@ -263,7 +263,7 @@ bool_t linphone_call_check_rtp_sessions(LinphoneCall *call) {
 			MS2Stream *s = dynamic_cast<MS2Stream *>(stream.get());
 			if (stream->getType() == SalVideo) {
 				MediaStream *ms = s->getMediaStream();
-				RtpSession *rtp_session = ms->sessions.rtp_session;
+				RtpSession *rtp_session = ms_media_stream_sessions_get_rtp_session(ms->sessions);
 				if (!rtp_session) {
 					lInfo() << "checkRtpSession(): session empty";
 					return false;

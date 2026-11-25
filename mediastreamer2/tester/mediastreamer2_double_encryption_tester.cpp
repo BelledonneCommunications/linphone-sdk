@@ -390,8 +390,8 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 		}
 	}
 	rtp_bundle_set_mid_extension_id(rtpBundle_margaux, RTP_EXTENSION_MID);
-	MSMediaStreamSessions margaux = {};
-	margaux.rtp_session = rtpSession_margaux_marielle;
+	MSMediaStreamSessions *margaux = ms_media_stream_sessions_new();
+	ms_media_stream_sessions_set_rtp_session(margaux, rtpSession_margaux_marielle);
 
 	/* the relay needs to open rtp session with all endpoints, 2 bundled sessions for margaux. Relay's RtpSession are
 	 * all in transfer mode  */
@@ -463,12 +463,12 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 		}
 	}
 	rtp_bundle_set_mid_extension_id(rtpBundle_relay, RTP_EXTENSION_MID);
-	MSMediaStreamSessions relay_margaux = {};
-	relay_margaux.rtp_session = rtpSession_relay_margaux_marielle;
+	MSMediaStreamSessions *relay_margaux = ms_media_stream_sessions_new();
+	ms_media_stream_sessions_set_rtp_session(relay_margaux, rtpSession_relay_margaux_marielle);
 	if (p.useEkt) {
-		ms_media_stream_sessions_set_ekt_mode(&relay_margaux, MS_EKT_TRANSFER);
+		ms_media_stream_sessions_set_ekt_mode(relay_margaux, MS_EKT_TRANSFER);
 	} else if (p.useInnerEncryption) {
-		ms_media_stream_sessions_set_ekt_mode(&relay_margaux, MS_EKT_DISABLED_WITH_TRANSFER);
+		ms_media_stream_sessions_set_ekt_mode(relay_margaux, MS_EKT_DISABLED_WITH_TRANSFER);
 	}
 
 	// marielle_relay: session used in recv only but created in duplex just because it is easier
@@ -478,12 +478,12 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_enable_transfer_mode(rtpSession_relay_marielle, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(rtpSession_relay_marielle, FALSE);
 	rtp_session_set_payload_type(rtpSession_relay_marielle, MARIELLE_PAYLOAD_TYPE);
-	MSMediaStreamSessions relay_marielle = {};
-	relay_marielle.rtp_session = rtpSession_relay_marielle;
+	MSMediaStreamSessions *relay_marielle = ms_media_stream_sessions_new();
+	ms_media_stream_sessions_set_rtp_session(relay_marielle, rtpSession_relay_marielle);
 	if (p.useEkt) {
-		ms_media_stream_sessions_set_ekt_mode(&relay_marielle, MS_EKT_TRANSFER);
+		ms_media_stream_sessions_set_ekt_mode(relay_marielle, MS_EKT_TRANSFER);
 	} else if (p.useInnerEncryption) {
-		ms_media_stream_sessions_set_ekt_mode(&relay_marielle, MS_EKT_DISABLED_WITH_TRANSFER);
+		ms_media_stream_sessions_set_ekt_mode(relay_marielle, MS_EKT_DISABLED_WITH_TRANSFER);
 	}
 	RtpSession *rtpSession_relay_marielle_bis = NULL;
 	RtpBundle *rtpBundle_relay_marielle = NULL;
@@ -515,12 +515,12 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_enable_transfer_mode(rtpSession_relay_pauline, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(rtpSession_relay_pauline, FALSE);
 	rtp_session_set_payload_type(rtpSession_relay_pauline, PAULINE_PAYLOAD_TYPE);
-	MSMediaStreamSessions relay_pauline = {};
-	relay_pauline.rtp_session = rtpSession_relay_pauline;
+	MSMediaStreamSessions *relay_pauline = ms_media_stream_sessions_new();
+	ms_media_stream_sessions_set_rtp_session(relay_pauline, rtpSession_relay_pauline);
 	if (p.useEkt) {
-		ms_media_stream_sessions_set_ekt_mode(&relay_pauline, MS_EKT_TRANSFER);
+		ms_media_stream_sessions_set_ekt_mode(relay_pauline, MS_EKT_TRANSFER);
 	} else if (p.useInnerEncryption) {
-		ms_media_stream_sessions_set_ekt_mode(&relay_pauline, MS_EKT_DISABLED_WITH_TRANSFER);
+		ms_media_stream_sessions_set_ekt_mode(relay_pauline, MS_EKT_DISABLED_WITH_TRANSFER);
 	}
 
 	/* Marielle is a source */
@@ -531,8 +531,8 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_set_profile(rtpSession_marielle, profile);
 	rtp_session_enable_rtcp(rtpSession_marielle, FALSE);
 	rtp_session_set_payload_type(rtpSession_marielle, MARIELLE_PAYLOAD_TYPE);
-	MSMediaStreamSessions marielle = {};
-	marielle.rtp_session = rtpSession_marielle;
+	MSMediaStreamSessions *marielle = ms_media_stream_sessions_new();
+	ms_media_stream_sessions_set_rtp_session(marielle, rtpSession_marielle);
 	RtpSession *rtpSession_marielle_bis = NULL;
 	RtpBundle *rtpBundle_marielle = NULL;
 	if (p.useBundledSource) { // Marielle bundles two sessions
@@ -560,55 +560,55 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_set_payload_type(rtpSession_pauline, PAULINE_PAYLOAD_TYPE);
 	rtp_session_set_seq_number(rtpSession_pauline, 0xFFF8); // Pauline's ROC will change after 8 packets sent as we
 	                                                        // start the session with a seqnumber near the max (0xFFFF)
-	MSMediaStreamSessions pauline = {};
-	pauline.rtp_session = rtpSession_pauline;
+	MSMediaStreamSessions *pauline = ms_media_stream_sessions_new();
+	ms_media_stream_sessions_set_rtp_session(pauline, rtpSession_pauline);
 
 	/* set outer keys */
-	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&marielle, p.outerSuite, marielle_outer_key,
+	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(marielle, p.outerSuite, marielle_outer_key,
 	                                                              MSSrtpKeySourceSDES) == 0);
 
-	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&pauline, p.outerSuite, pauline_outer_key,
+	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(pauline, p.outerSuite, pauline_outer_key,
 	                                                              MSSrtpKeySourceSDES) == 0);
 
-	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&margaux, p.outerSuite, margaux_outer_key,
+	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(margaux, p.outerSuite, margaux_outer_key,
 	                                                              MSSrtpKeySourceSDES) == 0);
 
-	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&relay_margaux, p.outerSuite, margaux_outer_key,
+	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(relay_margaux, p.outerSuite, margaux_outer_key,
 	                                                              MSSrtpKeySourceSDES) == 0);
-	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&relay_marielle, p.outerSuite, marielle_outer_key,
+	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(relay_marielle, p.outerSuite, marielle_outer_key,
 	                                                              MSSrtpKeySourceSDES) == 0);
-	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&relay_pauline, p.outerSuite, pauline_outer_key,
+	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(relay_pauline, p.outerSuite, pauline_outer_key,
 	                                                              MSSrtpKeySourceSDES) == 0);
 
 	/* set inner keys */
 	if (p.useInnerEncryption) {
 		if (p.useEkt) { // Just set the same EKT for all sources and recipient, they will generate keys and decrypt them
-			BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&marielle, &ekt_params) == 0);
-			BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&pauline, &ekt_params) == 0);
-			BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&margaux, &ekt_params) == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(marielle, &ekt_params) == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(pauline, &ekt_params) == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(margaux, &ekt_params) == 0);
 			// when skipping pauline begins, we must force the EKT full tag to be present in every packets, not just the
 			// first ones
 			if (p.skipPaulineBegin) {
-				BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt_full_tag_period(&pauline, 0) == 0);
+				BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt_full_tag_period(pauline, 0) == 0);
 			}
 		} else { // set the inner keys
 			// Marielle (even when 2 sessions are bundled from marielle, they will use the same key)
 			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_send_key_b64(
-			                   &marielle, p.innerSuite, marielle_inner_key, MSSrtpKeySourceZRTP) == 0);
+			                   marielle, p.innerSuite, marielle_inner_key, MSSrtpKeySourceZRTP) == 0);
 			// Pauline
 			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_send_key_b64(
-			                   &pauline, p.innerSuite, pauline_inner_key, MSSrtpKeySourceZRTP) == 0);
+			                   pauline, p.innerSuite, pauline_inner_key, MSSrtpKeySourceZRTP) == 0);
 			/* margaux inner keys are both set in margaux_marielle(attached to margaux MSMediaSessions)) rtpSession as
 			 * it is the main one in the bundle, it is the one used to decrypt them all */
-			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_recv_key_b64(&margaux, p.innerSuite,
-			                                                                    marielle_inner_key, MSSrtpKeySourceZRTP,
-			                                                                    marielle.rtp_session->snd.ssrc) == 0);
-			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_recv_key_b64(&margaux, p.innerSuite,
-			                                                                    pauline_inner_key, MSSrtpKeySourceZRTP,
-			                                                                    pauline.rtp_session->snd.ssrc) == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_recv_key_b64(
+			                   margaux, p.innerSuite, marielle_inner_key, MSSrtpKeySourceZRTP,
+			                   ms_media_stream_sessions_get_rtp_session(marielle)->snd.ssrc) == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_recv_key_b64(
+			                   margaux, p.innerSuite, pauline_inner_key, MSSrtpKeySourceZRTP,
+			                   ms_media_stream_sessions_get_rtp_session(pauline)->snd.ssrc) == 0);
 			if (p.useBundledSource) { // Marielle bundles two sessions, set the key for its SSRC too
 				BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_recv_key_b64(
-				                   &margaux, p.innerSuite, marielle_inner_key, MSSrtpKeySourceZRTP,
+				                   margaux, p.innerSuite, marielle_inner_key, MSSrtpKeySourceZRTP,
 				                   rtpSession_marielle_bis->snd.ssrc) == 0);
 			}
 		}
@@ -951,39 +951,37 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 
 	/* Check keys are correctly set, do it after the exchange as using ekt will set the keys while receiving the first
 	 * packet */
-	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&marielle, MediaStreamSendOnly, FALSE) ==
+	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(marielle, MediaStreamSendOnly, FALSE) ==
 	               MSSrtpKeySourceSDES);
-	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&pauline, MediaStreamSendOnly, FALSE) ==
+	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(pauline, MediaStreamSendOnly, FALSE) ==
 	               MSSrtpKeySourceSDES);
-	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&margaux, MediaStreamRecvOnly, FALSE) ==
+	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(margaux, MediaStreamRecvOnly, FALSE) ==
 	               MSSrtpKeySourceSDES);
-	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(&marielle, MediaStreamSendOnly, FALSE) ==
+	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(marielle, MediaStreamSendOnly, FALSE) ==
 	               p.outerSuite);
-	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(&pauline, MediaStreamSendOnly, FALSE) ==
-	               p.outerSuite);
-	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(&margaux, MediaStreamRecvOnly, FALSE) ==
-	               p.outerSuite);
+	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(pauline, MediaStreamSendOnly, FALSE) == p.outerSuite);
+	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(margaux, MediaStreamRecvOnly, FALSE) == p.outerSuite);
 
 	if (p.useInnerEncryption) {
-		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(&marielle, MediaStreamSendOnly, TRUE) ==
+		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(marielle, MediaStreamSendOnly, TRUE) ==
 		               p.innerSuite);
-		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(&pauline, MediaStreamSendOnly, TRUE) ==
+		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(pauline, MediaStreamSendOnly, TRUE) ==
 		               p.innerSuite);
-		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(&margaux, MediaStreamRecvOnly, TRUE) ==
+		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(margaux, MediaStreamRecvOnly, TRUE) ==
 		               p.innerSuite);
 		if (p.useEkt) {
-			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&marielle, MediaStreamSendOnly, TRUE) ==
+			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(marielle, MediaStreamSendOnly, TRUE) ==
 			               MSSrtpKeySourceEKT);
-			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&pauline, MediaStreamSendOnly, TRUE) ==
+			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(pauline, MediaStreamSendOnly, TRUE) ==
 			               MSSrtpKeySourceEKT);
-			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&margaux, MediaStreamRecvOnly, TRUE) ==
+			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(margaux, MediaStreamRecvOnly, TRUE) ==
 			               MSSrtpKeySourceEKT);
 		} else {
-			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&marielle, MediaStreamSendOnly, TRUE) ==
+			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(marielle, MediaStreamSendOnly, TRUE) ==
 			               MSSrtpKeySourceZRTP);
-			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&pauline, MediaStreamSendOnly, TRUE) ==
+			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(pauline, MediaStreamSendOnly, TRUE) ==
 			               MSSrtpKeySourceZRTP);
-			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&margaux, MediaStreamRecvOnly, TRUE) ==
+			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(margaux, MediaStreamRecvOnly, TRUE) ==
 			               MSSrtpKeySourceZRTP);
 		}
 	}
@@ -997,14 +995,14 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	}
 	bctbx_file_close(fp);
 
-	ms_media_stream_sessions_uninit(&marielle);
-	ms_media_stream_sessions_uninit(&margaux); // This will destroy rtpSession_margaux_marielle
+	ms_media_stream_sessions_unref(marielle);
+	ms_media_stream_sessions_unref(margaux); // This will destroy rtpSession_margaux_marielle
 	rtp_session_destroy(rtpSession_margaux_pauline);
-	ms_media_stream_sessions_uninit(&pauline);
-	ms_media_stream_sessions_uninit(&relay_marielle);
-	ms_media_stream_sessions_uninit(&relay_margaux); // This will destroy rtpSession_relay_margaux_marielle
+	ms_media_stream_sessions_unref(pauline);
+	ms_media_stream_sessions_unref(relay_marielle);
+	ms_media_stream_sessions_unref(relay_margaux); // This will destroy rtpSession_relay_margaux_marielle
 	rtp_session_destroy(rtpSession_relay_margaux_pauline);
-	ms_media_stream_sessions_uninit(&relay_pauline);
+	ms_media_stream_sessions_unref(relay_pauline);
 
 	rtp_bundle_delete(rtpBundle_relay);
 	rtp_bundle_delete(rtpBundle_margaux);

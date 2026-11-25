@@ -385,8 +385,8 @@ static void video_call_with_flexfec_bandwidth_variation(void) {
 	lcs = bctbx_list_append(lcs, marie->lc);
 	lcs = bctbx_list_append(lcs, pauline->lc);
 
-	BC_ASSERT_PTR_NOT_NULL(pauline_vstream->ms.sessions.fec_session);
-	if (pauline_vstream->ms.sessions.fec_session == NULL) {
+	BC_ASSERT_PTR_NOT_NULL(ms_media_stream_sessions_get_fec_session(pauline_vstream->ms.sessions));
+	if (ms_media_stream_sessions_get_fec_session(pauline_vstream->ms.sessions) == NULL) {
 		BC_FAIL("No FEC session");
 		end_call(marie, pauline);
 		bctbx_list_free(lcs);
@@ -395,9 +395,11 @@ static void video_call_with_flexfec_bandwidth_variation(void) {
 		return;
 	}
 
-	const rtp_stats *stats_fec_session_pauline = rtp_session_get_stats(pauline_vstream->ms.sessions.fec_session);
+	const rtp_stats *stats_fec_session_pauline =
+	    rtp_session_get_stats(ms_media_stream_sessions_get_fec_session(pauline_vstream->ms.sessions));
 	uint64_t prev_fec_sent_number = stats_fec_session_pauline->packet_sent;
-	const rtp_stats *stats_rtp_session_pauline = rtp_session_get_stats(pauline_vstream->ms.sessions.rtp_session);
+	const rtp_stats *stats_rtp_session_pauline =
+	    rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(pauline_vstream->ms.sessions));
 	uint64_t prev_rtp_sent_number = stats_rtp_session_pauline->packet_sent;
 	const fec_stats *fec_stats_pauline = fec_stream_get_stats(pauline_vstream->ms.fec_stream);
 	uint64_t prev_fec_row_sent_number = fec_stats_pauline->row_repair_sent;

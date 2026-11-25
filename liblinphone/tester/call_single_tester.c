@@ -3669,7 +3669,8 @@ void call_paused_resumed_base(bool_t multicast, bool_t with_losses, bool_t accep
 	wait_for_until(pauline->lc, marie->lc, NULL, 5, 5000);
 
 	/*since RTCP streams are reset when call is paused/resumed, there should be no loss at all*/
-	rtp_session = linphone_call_get_stream(call_pauline, LinphoneStreamTypeAudio)->sessions.rtp_session;
+	rtp_session = ms_media_stream_sessions_get_rtp_session(
+	    linphone_call_get_stream(call_pauline, LinphoneStreamTypeAudio)->sessions);
 	if (BC_ASSERT_PTR_NOT_NULL(rtp_session)) {
 		stats = rtp_session_get_stats(rtp_session);
 		BC_ASSERT_EQUAL((int)stats->cum_packet_loss, 0, int, "%d");
@@ -3751,7 +3752,8 @@ void call_paused_resumed_base(bool_t multicast, bool_t with_losses, bool_t accep
 	wait_for_until(pauline->lc, marie->lc, NULL, 5, 5000);
 
 	/*since RTCP streams are reset when call is paused/resumed, there should be no loss at all*/
-	rtp_session = linphone_call_get_stream(call_marie, LinphoneStreamTypeAudio)->sessions.rtp_session;
+	rtp_session = ms_media_stream_sessions_get_rtp_session(
+	    linphone_call_get_stream(call_marie, LinphoneStreamTypeAudio)->sessions);
 	if (BC_ASSERT_PTR_NOT_NULL(rtp_session)) {
 		stats = rtp_session_get_stats(rtp_session);
 		BC_ASSERT_EQUAL((int)stats->cum_packet_loss, 0, int, "%d");
@@ -3917,7 +3919,8 @@ static void call_paused_resumed_no_register(void) {
 	wait_for_until(pauline->lc, marie->lc, NULL, 5, 5000);
 
 	/*since RTCP streams are reset when call is paused/resumed, there should be no loss at all*/
-	rtp_session = linphone_call_get_stream(call_marie, LinphoneStreamTypeAudio)->sessions.rtp_session;
+	rtp_session = ms_media_stream_sessions_get_rtp_session(
+	    linphone_call_get_stream(call_marie, LinphoneStreamTypeAudio)->sessions);
 	if (BC_ASSERT_PTR_NOT_NULL(rtp_session)) {
 		stats = rtp_session_get_stats(rtp_session);
 		BC_ASSERT_EQUAL((int)stats->cum_packet_loss, 0, int, "%d");
@@ -3991,8 +3994,8 @@ static void call_paused_by_both(void) {
 	wait_for_until(pauline->lc, marie->lc, NULL, 5, 5000);
 
 	/*since RTCP streams are reset when call is paused/resumed, there should be no loss at all*/
-	stats =
-	    rtp_session_get_stats(linphone_call_get_stream(call_pauline, LinphoneStreamTypeAudio)->sessions.rtp_session);
+	stats = rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(
+	    linphone_call_get_stream(call_pauline, LinphoneStreamTypeAudio)->sessions));
 	BC_ASSERT_EQUAL((int)stats->cum_packet_loss, 0, int, "%d");
 
 	end_call(marie, pauline);
@@ -4029,7 +4032,8 @@ static void call_paused_resumed_with_loss(void) {
 	BC_ASSERT_TRUE(call(pauline, marie));
 	call_pauline = linphone_core_get_current_call(pauline->lc);
 	if (call_pauline) {
-		RtpSession *rtp_session = linphone_call_get_stream(call_pauline, LinphoneStreamTypeAudio)->sessions.rtp_session;
+		RtpSession *rtp_session = ms_media_stream_sessions_get_rtp_session(
+		    linphone_call_get_stream(call_pauline, LinphoneStreamTypeAudio)->sessions);
 		rtp_session_enable_network_simulation(rtp_session, &params);
 
 		/*generate some traffic*/
@@ -4153,7 +4157,8 @@ static void call_paused_resumed_from_callee_base(bool_t timeout) {
 		params.loss_rate = 100;
 		params.consecutive_loss_probability = 1;
 		params.mode = OrtpNetworkSimulatorOutbound;
-		RtpSession *rtp_session = linphone_call_get_stream(call_marie, LinphoneStreamTypeAudio)->sessions.rtp_session;
+		RtpSession *rtp_session = ms_media_stream_sessions_get_rtp_session(
+		    linphone_call_get_stream(call_marie, LinphoneStreamTypeAudio)->sessions);
 		rtp_session_enable_network_simulation(rtp_session, &params);
 		BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallEnd, 1, 50000));
 		BC_ASSERT_TRUE(wait_for_until(marie->lc, pauline->lc, &pauline->stat.number_of_LinphoneCallReleased, 1, 50000));
@@ -4168,8 +4173,8 @@ static void call_paused_resumed_from_callee_base(bool_t timeout) {
 		wait_for_until(pauline->lc, marie->lc, NULL, 5, 5000);
 
 		/*since RTCP streams are reset when call is paused/resumed, there should be no loss at all*/
-		stats =
-		    rtp_session_get_stats(linphone_call_get_stream(call_marie, LinphoneStreamTypeAudio)->sessions.rtp_session);
+		stats = rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(
+		    linphone_call_get_stream(call_marie, LinphoneStreamTypeAudio)->sessions));
 		BC_ASSERT_EQUAL((int)stats->cum_packet_loss, 0, int, "%d");
 
 		end_call(pauline, marie);
@@ -6252,7 +6257,7 @@ static void call_with_generic_cn(void) {
 
 		wait_for_until(marie->lc, pauline->lc, NULL, 0, 8000);
 		astream = (AudioStream *)linphone_call_get_stream(pauline_call, LinphoneStreamTypeAudio);
-		rtps = rtp_session_get_stats(astream->ms.sessions.rtp_session);
+		rtps = rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(astream->ms.sessions));
 		BC_ASSERT_TRUE(rtps->packet_recv <= 300 && rtps->packet_recv >= 200);
 	}
 	end_call(marie, pauline);
@@ -6627,7 +6632,7 @@ static void call_with_generic_nack_rtcp_feedback(void) {
 	call_marie = linphone_core_get_current_call(marie->lc);
 	if (call_marie) {
 		AudioStream *astream = (AudioStream *)linphone_call_get_stream(call_marie, LinphoneStreamTypeAudio);
-		rtp_session_enable_network_simulation(astream->ms.sessions.rtp_session, &params);
+		rtp_session_enable_network_simulation(ms_media_stream_sessions_get_rtp_session(astream->ms.sessions), &params);
 		ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(&astream->ms), ORTP_EVENT_RTCP_PACKET_RECEIVED,
 		                           RTCP_RTPFB, (OrtpEvDispatcherCb)generic_nack_received, &marie->stat);
 	}
@@ -6863,8 +6868,8 @@ static void custom_rtp_modifier(bool_t pauseResumeTest, bool_t recordTest) {
 		wait_for_until(pauline->lc, marie->lc, NULL, 5, 5000);
 
 		/*since RTCP streams are reset when call is paused/resumed, there should be no loss at all*/
-		stats = rtp_session_get_stats(
-		    linphone_call_get_stream(call_pauline, LinphoneStreamTypeAudio)->sessions.rtp_session);
+		stats = rtp_session_get_stats(ms_media_stream_sessions_get_rtp_session(
+		    linphone_call_get_stream(call_pauline, LinphoneStreamTypeAudio)->sessions));
 		BC_ASSERT_EQUAL((int)stats->cum_packet_loss, 0, int, "%d");
 
 		end_call(pauline, marie);
