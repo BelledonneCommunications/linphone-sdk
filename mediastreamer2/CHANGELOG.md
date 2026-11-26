@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Baudot: improve detector robustness by widening carrier and preamble tolerances, and preserving current character on transient silence.
 - Audio conference: fix ticker offset compensation in MSRtpSend and add compensation in MSRtpRecv when merging calls into a conference.
 
 ## [5.5.30] 2026-10-05

@@ -5349,14 +5349,17 @@ static void baudot_text_message(LinphoneBaudotMode initial_sender_baudot_mode,
 			const char *message = "Be l3l";
 			size_t i;
 			LinphoneChatMessage *chat_message = linphone_chat_room_create_message_from_utf8(pauline_chat_room, NULL);
+			// Wait for media streams and jitter buffers to stabilize before sending Baudot tones
+			wait_for_until(pauline->lc, marie->lc, NULL, 0, 1000);
 			for (i = 0; i < strlen(message); i++) {
+				int current_composing = marie->stat.number_of_LinphoneIsComposingActiveReceived;
 				BC_ASSERT_FALSE(linphone_chat_message_put_char(chat_message, message[i]));
 				BC_ASSERT_TRUE(wait_for_until(pauline->lc, marie->lc,
-				                              &marie->stat.number_of_LinphoneIsComposingActiveReceived, (int)i + 1,
-				                              liblinphone_tester_sip_timeout));
+				                              &marie->stat.number_of_LinphoneIsComposingActiveReceived,
+				                              current_composing + 1, liblinphone_tester_sip_timeout));
 				/* To ensure readability of the xml report, do not print a non-printable in the
 				 * assert, should this test case be failing.*/
-				int expectedChar = toupper(message[i]);
+				int expectedChar = toupper((unsigned char)message[i]);
 				int readChar = (int)linphone_chat_room_get_char(marie_chat_room);
 				if (BC_ASSERT_TRUE(readChar >= 0 && readChar < 256) && BC_ASSERT_TRUE(isprint(readChar) != 0)) {
 					BC_ASSERT_EQUAL(readChar, expectedChar, int, "%c");

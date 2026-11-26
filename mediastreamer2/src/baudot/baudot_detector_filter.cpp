@@ -31,6 +31,7 @@ namespace mediastreamer {
 
 static const float ENERGY_MIN_THRESHOLD = 0.01f;
 static const int64_t NO_DETECTION_DURATION_MS = 300; // ms
+static const uint8_t CARRIER_TOLERANCE_MS = 20;      // ms
 
 constexpr static const float MIN_DETECTION_THRESHOLD = 0.88f;
 constexpr static const float MAX_NO_DETECTION_THRESHOLD = 0.79f;
@@ -38,8 +39,7 @@ constexpr static const float MAX_NO_DETECTION_THRESHOLD = 0.79f;
 enum DetectionState {
 	WaitingForCarrier,
 	WaitingForLettersSpace,
-	WaitingForLettersMarkUs,
-	WaitingForLettersMarkEurope,
+	WaitingForLettersMark,
 	RunningUs,
 	RunningEurope,
 };
@@ -149,10 +149,8 @@ private:
 				return "WaitingForCarrier";
 			case WaitingForLettersSpace:
 				return "WaitingForLettersSpace";
-			case WaitingForLettersMarkUs:
-				return "WaitingForLettersMarkUs";
-			case WaitingForLettersMarkEurope:
-				return "WaitingForLettersMarkEurope";
+			case WaitingForLettersMark:
+				return "WaitingForLettersMark";
 			case RunningUs:
 				return "RunningUs";
 			case RunningEurope:
@@ -237,23 +235,21 @@ private:
 
 		switch (mDetectionState) {
 			case WaitingForCarrier:
-				if ((mConsecutiveMarkMs >= (CARRIER_DURATION - 1)) && (mConsecutiveMarkMs <= (CARRIER_DURATION + 1))) {
+				if ((mConsecutiveMarkMs >= (CARRIER_DURATION - CARRIER_TOLERANCE_MS)) &&
+				    (mConsecutiveMarkMs <= (CARRIER_DURATION + CARRIER_TOLERANCE_MS))) {
 					changeDetectionState(WaitingForLettersSpace);
 				}
 				break;
-			case WaitingForLettersMarkUs:
-				if (calcNbBits(mConsecutiveMarkMs, MSBaudotStandardUs) == 7) {
-					changeDetectionState(RunningUs);
-					notifyState(f, MSBaudotDetectorStateTty45);
-					mContext.feed(BAUDOT_LETTERS_CODE);
-				} else {
-					changeDetectionState(WaitingForCarrier);
-				}
-				break;
-			case WaitingForLettersMarkEurope:
-				if (calcNbBits(mConsecutiveMarkMs, MSBaudotStandardEurope) == 7) {
+			case WaitingForLettersMark:
+				if (calcNbBits(mConsecutiveMarkMs, MSBaudotStandardEurope) == 7 &&
+				    calcNbBits(mConsecutiveMarkMs, MSBaudotStandardUs) != 7) {
 					changeDetectionState(RunningEurope);
 					notifyState(f, MSBaudotDetectorStateTty50);
+					mContext.feed(BAUDOT_LETTERS_CODE);
+				} else if (calcNbBits(mConsecutiveMarkMs, MSBaudotStandardUs) == 7 &&
+				           calcNbBits(mConsecutiveMarkMs, MSBaudotStandardEurope) != 7) {
+					changeDetectionState(RunningUs);
+					notifyState(f, MSBaudotDetectorStateTty45);
 					mContext.feed(BAUDOT_LETTERS_CODE);
 				} else {
 					changeDetectionState(WaitingForCarrier);
@@ -279,10 +275,9 @@ private:
 
 		switch (mDetectionState) {
 			case WaitingForLettersSpace:
-				if (isDuration(mConsecutiveSpaceMs, MSBaudotStandardUs)) {
-					changeDetectionState(WaitingForLettersMarkUs);
-				} else if (isDuration(mConsecutiveSpaceMs, MSBaudotStandardEurope)) {
-					changeDetectionState(WaitingForLettersMarkEurope);
+				if ((mConsecutiveSpaceMs >= (EUROPE_TONE_DURATION - 2)) &&
+				    (mConsecutiveSpaceMs <= (US_TONE_DURATION + 3))) {
+					changeDetectionState(WaitingForLettersMark);
 				}
 				break;
 			case RunningUs:
@@ -292,8 +287,7 @@ private:
 				addBits(f, false, calcNbBits(mConsecutiveSpaceMs, MSBaudotStandardEurope));
 				break;
 			case WaitingForCarrier:
-			case WaitingForLettersMarkUs:
-			case WaitingForLettersMarkEurope:
+			case WaitingForLettersMark:
 			default:
 				// Do nothing...
 				break;
@@ -305,16 +299,6 @@ private:
 	void initGoertzelStates() {
 		mGoertzelStates[0].init(SPACE_TONE_FREQ, mRate);
 		mGoertzelStates[1].init(MARK_TONE_FREQ, mRate);
-	}
-
-	bool isDuration(uint16_t nbMs, MSBaudotStandard standard) {
-		switch (standard) {
-			default:
-			case MSBaudotStandardUs:
-				return (nbMs == US_TONE_DURATION) || (nbMs == (US_TONE_DURATION + 1));
-			case MSBaudotStandardEurope:
-				return (nbMs == EUROPE_TONE_DURATION) || (nbMs == EUROPE_TONE_DURATION + 1);
-		}
 	}
 
 	bool isTemporaryDetectionToBeEnabled() const {
@@ -382,7 +366,10 @@ private:
 		} else if (mConsecutiveSpaceMs > mConsecutiveMarkMs) {
 			handleSpaceBits(f);
 		}
-		mCurrentCode = 0;
+		if ((mDetectionState != RunningUs) && (mDetectionState != RunningEurope)) {
+			mCurrentCode = 0;
+			mCurrentCodeBit = 0;
+		}
 	}
 
 	// Sets the frame size for a 1 ms sample.
