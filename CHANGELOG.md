@@ -41,6 +41,7 @@ From the 5.6 SDK release, all changes are tracked in this changelog. Changelogs 
 - Use of `linphone_call_params_enable_sending_camera_stream()/linphone_call_params_sending_camera_stream_enabled()` instead of `linphone_call_params_enable_camera()/linphone_call_params_camera_enabled()`
 
 ### Fixed
+- mediastreamer2: improve Baudot detector robustness by widening carrier and preamble tolerances, and preserving current character on transient silence.
 - Fix ICE getting stuck in progress if a re-INVITE is received during the connectivity checks.
 - Fix use-after-free crash in `linphone_chat_message_get_event_log()` / `linphone_event_log_get_type()` when the `EventLog` was not kept alive in `MainDb`'s cache.
 - Fix various TURN issues:

@@ -60,13 +60,13 @@ static void send_and_check_baudot_text(bctbx_list_t *lcs,
 	BC_ASSERT_PTR_NOT_NULL(sender_chat_room);
 	BC_ASSERT_PTR_NOT_NULL(receiver_chat_room);
 	if (sender_chat_room && receiver_chat_room) {
-		int initial_composing = receiver->stat.number_of_LinphoneIsComposingActiveReceived;
 		int initial_msg_received = receiver->stat.number_of_LinphoneMessageReceived;
 		LinphoneChatMessage *chat_message = linphone_chat_room_create_message_from_utf8(sender_chat_room, NULL);
 		for (size_t i = 0; i < strlen(message); i++) {
+			int current_composing = receiver->stat.number_of_LinphoneIsComposingActiveReceived;
 			BC_ASSERT_FALSE(linphone_chat_message_put_char(chat_message, message[i]));
 			BC_ASSERT_TRUE(wait_for_list(lcs, &receiver->stat.number_of_LinphoneIsComposingActiveReceived,
-			                             initial_composing + (int)i + 1, liblinphone_tester_sip_timeout));
+			                             current_composing + 1, liblinphone_tester_sip_timeout));
 			/* To ensure readability of the xml report, do not print a non-printable in the
 			 * assert, should this test case be failing.*/
 			int expectedChar = toupper((unsigned char)message[i]);
@@ -125,6 +125,10 @@ static void baudot_text_message(const BaudotTextMessageParameters &params) {
 
 		bctbx_list_t *lcs = bctbx_list_append(NULL, pauline->lc);
 		lcs = bctbx_list_append(lcs, marie->lc);
+
+		// Wait for media streams and jitter buffers to stabilize before sending Baudot tones
+		wait_for_list(lcs, NULL, 0, 1000);
+
 		send_and_check_baudot_text(lcs, pauline_call, marie, marie_call, "Be l3l");
 		bctbx_list_free(lcs);
 
@@ -480,7 +484,7 @@ static void baudot_local_conference_relay_service(LinphoneBaudotMode pauline_mod
 		linphone_call_cbs_unref(marie_laure_cbs);
 
 		// Wait for media streams and jitter buffers to stabilize before sending Baudot tones
-		wait_for_list(lcs, NULL, 0, 500);
+		wait_for_list(lcs, NULL, 0, 1000);
 
 		int initial_marie_baudot = marie->stat.number_of_LinphoneBaudotDetected;
 		if (laure_mode == LinphoneBaudotModeTty || laure_mode == LinphoneBaudotModeHearingCarryOver) {
