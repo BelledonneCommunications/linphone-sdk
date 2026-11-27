@@ -19,6 +19,7 @@
  */
 
 #include <algorithm>
+#include <cctype>
 
 #include "bctoolbox/defs.h"
 #include "bctoolbox/list.h"
@@ -959,10 +960,49 @@ unsigned int MagicSearch::searchInAddress(const shared_ptr<const Address> &lAddr
 	return getMinWeight();
 }
 
+static std::string utf8ToLower(const std::string &input) {
+	std::string result = input;
+	for (size_t i = 0; i < result.length(); ++i) {
+		unsigned char c = static_cast<unsigned char>(result[i]);
+		if (c < 0x80) {
+			result[i] = static_cast<char>(std::tolower(c));
+		} else if (c == 0xC3 && i + 1 < result.length()) {
+			unsigned char c2 = static_cast<unsigned char>(result[i + 1]);
+			if ((c2 & 0xC0) == 0x80) {
+				if (c2 >= 0x80 && c2 <= 0x9E && c2 != 0x97) {
+					// Latin-1 Supplement uppercase (U+00C0..U+00DE except U+00D7 '×')
+					result[i + 1] = static_cast<char>(c2 + 0x20);
+				}
+				++i;
+			}
+		} else if (c == 0xD0 && i + 1 < result.length()) {
+			unsigned char c2 = static_cast<unsigned char>(result[i + 1]);
+			if ((c2 & 0xC0) == 0x80) {
+				if (c2 >= 0x80 && c2 <= 0x8F) {
+					// Cyrillic U+0400..U+040F (Ё, Є, І, Ї, Ў, etc.) -> U+0450..U+045F
+					result[i] = static_cast<char>(0xD1);
+					result[i + 1] = static_cast<char>(c2 + 0x10);
+				} else if (c2 >= 0x90 && c2 <= 0x9F) {
+					// Cyrillic U+0410..U+041F (А..П) -> U+0430..U+043F (а..п)
+					result[i + 1] = static_cast<char>(c2 + 0x20);
+				} else if (c2 >= 0xA0 && c2 <= 0xAF) {
+					// Cyrillic U+0420..U+042F (Р..Я) -> U+0440..U+044F (р..я)
+					result[i] = static_cast<char>(0xD1);
+					result[i + 1] = static_cast<char>(c2 - 0x20);
+				}
+				++i;
+			}
+		} else if (c >= 0xC0) {
+			while (i + 1 < result.length() && (static_cast<unsigned char>(result[i + 1]) & 0xC0) == 0x80) {
+				++i;
+			}
+		}
+	}
+	return result;
+}
+
 void MagicSearch::setupRegex(const string &filter) {
-	string lowercaseFilter = filter;
-	transform(lowercaseFilter.begin(), lowercaseFilter.end(), lowercaseFilter.begin(),
-	          [](unsigned char c) { return tolower(c); });
+	string lowercaseFilter = utf8ToLower(filter);
 
 	if (lowercaseFilter.empty()) {
 		// Match anything
@@ -984,10 +1024,7 @@ void MagicSearch::setupRegex(const string &filter) {
 }
 
 unsigned int MagicSearch::getWeight(const string &haystack) const {
-	string lowercaseHaystack = haystack;
-
-	transform(lowercaseHaystack.begin(), lowercaseHaystack.end(), lowercaseHaystack.begin(),
-	          [](unsigned char c) { return tolower(c); });
+	string lowercaseHaystack = utf8ToLower(haystack);
 
 	if (bctbx_is_matching_regex_log_context(lowercaseHaystack.c_str(), mFilterRegex.c_str(), TRUE,
 #ifdef _MSC_VER
